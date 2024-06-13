@@ -6,20 +6,13 @@ use geo::{
     Simplify,
 };
 
-pub fn validation(t1: &Vec<f64>, t2: &Vec<f64>) -> Result<(geo::LineString, geo::LineString)> {
+use crate::journeys::GpsTrace;
+
+pub fn validation(t1: GpsTrace, t2: GpsTrace) -> Result<(geo::LineString, geo::LineString)> {
     let line_strings: Vec<LineString<f64>> = [t1, t2]
         .iter()
         .map(|t| {
-            if t.len() % 2 != 0 {
-                panic!("Trajectory must have an even number of elements");
-            }
-
-            let coords: Vec<_> = t
-                .iter()
-                .step_by(2)
-                .zip(t.iter().skip(1).step_by(2))
-                .map(|(x, y)| Point::new(*x, *y))
-                .collect();
+            let coords: Vec<Point> = t.points.iter().map(Point::from).collect();
 
             // remove outliers
 
