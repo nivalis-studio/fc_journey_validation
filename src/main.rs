@@ -1,5 +1,5 @@
 use clap::Parser;
-use gps_trajectory_validation::{cli, journeys::Journey, traces_validation};
+use gps_trajectory_validation::{cli, journeys::Journey, validate_traces};
 
 fn main() -> anyhow::Result<()> {
     let args = cli::Cli::parse();
@@ -10,7 +10,7 @@ fn main() -> anyhow::Result<()> {
 
     let (trace_1, trace_2) = journey.gps_trace;
 
-    traces_validation(trace_1, trace_2)?;
+    validate_traces(trace_1, trace_2)?;
 
     Ok(())
 }
