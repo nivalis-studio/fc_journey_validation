@@ -1,5 +1,9 @@
 use chrono::{DateTime, Utc};
-use geo::Point;
+use geo::{
+    coord, ChaikinSmoothing, DensifyHaversine, LineInterpolatePoint, OutlierDetection,
+    RemoveRepeatedPoints, Simplify,
+};
+use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -36,6 +40,37 @@ pub struct GpsTrace {
     pub journey_id: String,
     pub user_id: String,
     pub points: Vec<GpsPoint>,
+}
+
+impl GpsTrace {
+    pub fn to_line_string(&self) -> LineString {
+        let coords: Vec<Point> = self.points.iter().map(Point::from).collect();
+
+        let coords = coords
+            .iter()
+            .zip(coords.outliers(3).iter())
+            .filter(|(_, &score)| score <= 1.0) // Adjust threshold as needed
+            .map(|(&point, _)| coord! { x: point.x(), y: point.y() })
+            .collect();
+
+        let line_string = LineString(coords);
+
+        line_string.densify_haversine(0.1);
+        line_string.line_interpolate_point(0.1);
+
+        line_string
+    }
+
+    // TODO: create a wrapper type for LineString
+    pub fn to_clean_line_string(&self) -> LineString {
+        let line_string = self.to_line_string();
+
+        line_string.remove_repeated_points();
+        line_string.chaikin_smoothing(3);
+        line_string.simplify(&0.1);
+
+        line_string
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
