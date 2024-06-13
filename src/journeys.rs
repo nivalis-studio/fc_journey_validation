@@ -1,7 +1,5 @@
 use chrono::{DateTime, Utc};
-use geo::{
-    coord, ChaikinSmoothing, DensifyHaversine, OutlierDetection, RemoveRepeatedPoints, Simplify,
-};
+use geo::{coord, DensifyHaversine, OutlierDetection, RemoveRepeatedPoints, Simplify};
 use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
 
@@ -45,11 +43,7 @@ pub struct Trace(LineString);
 
 impl Trace {
     pub fn simplified(self) -> Self {
-        let line_string = self
-            .as_ref()
-            .remove_repeated_points()
-            .chaikin_smoothing(3)
-            .simplify(&0.1);
+        let line_string = self.as_ref().remove_repeated_points().simplify(&0.1);
 
         Self(line_string)
     }
@@ -73,7 +67,6 @@ impl From<&GpsTrace> for Trace {
             .collect();
 
         let line_string = line_string.densify_haversine(0.1);
-        // line_string.line_interpolate_point(0.1);
 
         Self(line_string)
     }
