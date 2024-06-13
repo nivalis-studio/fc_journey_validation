@@ -1,22 +1,11 @@
 use anyhow::Result;
 use geo::LineString;
-use geojson::{Feature, FeatureCollection, Geometry};
+use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
 pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
-    let mut stroke1 = geojson::JsonObject::new();
-
-    stroke1.insert("stroke".to_string(), geojson::JsonValue::from("#00a3d7"));
-    stroke1.insert("stroke-width".to_string(), geojson::JsonValue::from("2"));
-    stroke1.insert("stroke-opacity".to_string(), geojson::JsonValue::from("1"));
-
-    let mut stroke2 = geojson::JsonObject::new();
-
-    stroke2.insert("stroke".to_string(), geojson::JsonValue::from("#ff6251"));
-    stroke2.insert("stroke-width".to_string(), geojson::JsonValue::from("2"));
-    stroke2.insert("stroke-opacity".to_string(), geojson::JsonValue::from("1"));
-
     let feature_collection = FeatureCollection {
         bbox: None,
         features: vec![
@@ -28,7 +17,7 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
                     foreign_members: None,
                 }),
                 id: None,
-                properties: Some(stroke1),
+                properties: create_properties("#00a3d7", "2", "1"),
                 foreign_members: None,
             },
             Feature {
@@ -39,7 +28,7 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
                     foreign_members: None,
                 }),
                 id: None,
-                properties: Some(stroke2),
+                properties: create_properties("#ff6251", "2", "1"),
                 foreign_members: None,
             },
         ],
@@ -57,4 +46,20 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
     file.write_all(feature_collection.as_bytes())?;
 
     Ok(())
+}
+
+fn create_properties(color: &str, width: &str, opacity: &str) -> Option<JsonObject> {
+    let mut properties = JsonObject::new();
+    let properties_: HashMap<String, JsonValue> = [
+        ("stroke".to_string(), JsonValue::from(color)),
+        ("stroke-width".to_string(), JsonValue::from(width)),
+        ("stroke-opacity".to_string(), JsonValue::from(opacity)),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    properties.extend(properties_);
+
+    Some(properties)
 }
