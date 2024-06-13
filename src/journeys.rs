@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use geo::{
-    coord, ChaikinSmoothing, DensifyHaversine, LineInterpolatePoint, OutlierDetection,
-    RemoveRepeatedPoints, Simplify,
+    coord, ChaikinSmoothing, DensifyHaversine, OutlierDetection, RemoveRepeatedPoints, Simplify,
 };
 use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
@@ -42,34 +41,47 @@ pub struct GpsTrace {
     pub points: Vec<GpsPoint>,
 }
 
-impl GpsTrace {
-    pub fn to_line_string(&self) -> LineString {
-        let coords: Vec<Point> = self.points.iter().map(Point::from).collect();
+pub struct Trace(LineString);
 
-        let coords = coords
+impl Trace {
+    pub fn simplified(self) -> Self {
+        let line_string = self
+            .as_ref()
+            .remove_repeated_points()
+            .chaikin_smoothing(3)
+            .simplify(&0.1);
+
+        Self(line_string)
+    }
+}
+
+impl AsRef<LineString> for Trace {
+    fn as_ref(&self) -> &LineString {
+        &self.0
+    }
+}
+
+impl From<&GpsTrace> for Trace {
+    fn from(value: &GpsTrace) -> Self {
+        let coords: Vec<Point> = value.points.iter().map(Point::from).collect();
+
+        let line_string: LineString = coords
             .iter()
             .zip(coords.outliers(3).iter())
             .filter(|(_, &score)| score <= 1.0) // Adjust threshold as needed
             .map(|(&point, _)| coord! { x: point.x(), y: point.y() })
             .collect();
 
-        let line_string = LineString(coords);
+        let line_string = line_string.densify_haversine(0.1);
+        // line_string.line_interpolate_point(0.1);
 
-        line_string.densify_haversine(0.1);
-        line_string.line_interpolate_point(0.1);
-
-        line_string
+        Self(line_string)
     }
+}
 
-    // TODO: create a wrapper type for LineString
-    pub fn to_clean_line_string(&self) -> LineString {
-        let line_string = self.to_line_string();
-
-        line_string.remove_repeated_points();
-        line_string.chaikin_smoothing(3);
-        line_string.simplify(&0.1);
-
-        line_string
+impl From<GpsTrace> for Trace {
+    fn from(value: GpsTrace) -> Self {
+        Self::from(&value)
     }
 }
 
