@@ -51,7 +51,7 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
 
     let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
 
-    open::with(url, "firefox")?;
+    open::that(url)?;
 
     let mut file = File::create("traces.geojson")?;
     file.write_all(feature_collection.as_bytes())?;
