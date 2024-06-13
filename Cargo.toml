@@ -1,0 +1,22 @@
+[package]
+name = "gps-trajectory-validation"
+description = "Convert E57 point cloud files to LAS"
+version = "0.4.7"
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+homepage = "https://github.com/nivalis-studio/gps-trajectory-validation"
+repository = "https://github.com/nivalis-studio/gps-trajectory-validation"
+keywords = ["geospatial"]
+categories = ["science::geo"]
+authors = ["pnodet <paul.nodet@gmail.com>", "pnwa <pnwa@icloud.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+clap = { version = "4.5.7", features = ["derive"] }
+serde_json = { version = "1.0.117" }
+serde = { version = "1.0.203", features = ["derive"] }
+rayon = "1.10.0"
+geo = { version = "0.28.0" }
