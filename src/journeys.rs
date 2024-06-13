@@ -40,6 +40,6 @@ pub struct GpsPoint {
 
 impl From<&GpsPoint> for Point {
     fn from(value: &GpsPoint) -> Self {
-        Self::new(value.latitude, value.longitude)
+        Self::new(value.longitude, value.latitude)
     }
 }
