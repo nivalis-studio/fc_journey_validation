@@ -7,6 +7,7 @@ fn main() -> anyhow::Result<()> {
     let file = std::fs::read_to_string(args.file_path)?;
 
     let journey: Journey = serde_json::from_str(&file)?;
+
     let (trace_1, trace_2) = journey.gps_trace;
 
     validation(trace_1, trace_2)?;
