@@ -39,6 +39,7 @@ pub struct GpsTrace {
     pub points: Vec<GpsPoint>,
 }
 
+#[derive(Clone, Debug)]
 pub struct Trace(LineString);
 
 impl Trace {
