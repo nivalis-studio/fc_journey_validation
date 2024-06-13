@@ -23,10 +23,10 @@ pub struct Journey {
     pub passenger_id: String,
     pub cancel_reason: Option<String>,
     pub canceled_at: Option<DateTime<Utc>>,
-    pub gps_trace: (GpsTrace, GpsTrace),
+    pub gps_trace: Vec<GpsTrace>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GpsTrace {
     pub id: String,
@@ -79,7 +79,7 @@ impl From<GpsTrace> for Trace {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GpsPoint {
     pub id: String,

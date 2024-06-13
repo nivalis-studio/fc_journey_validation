@@ -8,9 +8,10 @@ fn main() -> anyhow::Result<()> {
 
     let journey: Journey = serde_json::from_str(&file)?;
 
-    let (trace_1, trace_2) = journey.gps_trace;
-
-    validate_traces(trace_1, trace_2)?;
+    validate_traces(
+        journey.gps_trace.get(0).unwrap().clone(),
+        journey.gps_trace.get(1).unwrap().clone(),
+    )?;
 
     Ok(())
 }
