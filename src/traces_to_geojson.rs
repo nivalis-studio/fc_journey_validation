@@ -17,39 +17,44 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
     stroke2.insert("stroke-width".to_string(), geojson::JsonValue::from("2"));
     stroke2.insert("stroke-opacity".to_string(), geojson::JsonValue::from("1"));
 
+    let feature_collection = FeatureCollection {
+        bbox: None,
+        features: vec![
+            Feature {
+                bbox: None,
+                geometry: Some(Geometry {
+                    value: geojson::Value::from(&t1.clone()),
+                    bbox: None,
+                    foreign_members: None,
+                }),
+                id: None,
+                properties: Some(stroke1),
+                foreign_members: None,
+            },
+            Feature {
+                bbox: None,
+                geometry: Some(Geometry {
+                    value: geojson::Value::from(&t2.clone()),
+                    bbox: None,
+                    foreign_members: None,
+                }),
+                id: None,
+                properties: Some(stroke2),
+                foreign_members: None,
+            },
+        ],
+        foreign_members: None,
+    }
+    .to_string();
+
+    let uri_data = urlencoding::encode(&feature_collection);
+
+    let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
+
+    open::with(url, "firefox")?;
+
     let mut file = File::create("traces.geojson")?;
-    file.write_all(
-        FeatureCollection {
-            bbox: None,
-            features: vec![
-                Feature {
-                    bbox: None,
-                    geometry: Some(Geometry {
-                        value: geojson::Value::from(&t1.clone()),
-                        bbox: None,
-                        foreign_members: None,
-                    }),
-                    id: None,
-                    properties: Some(stroke1),
-                    foreign_members: None,
-                },
-                Feature {
-                    bbox: None,
-                    geometry: Some(Geometry {
-                        value: geojson::Value::from(&t2.clone()),
-                        bbox: None,
-                        foreign_members: None,
-                    }),
-                    id: None,
-                    properties: Some(stroke2),
-                    foreign_members: None,
-                },
-            ],
-            foreign_members: None,
-        }
-        .to_string()
-        .as_bytes(),
-    )?;
+    file.write_all(feature_collection.as_bytes())?;
 
     Ok(())
 }

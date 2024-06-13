@@ -22,3 +22,5 @@ rayon = "1.10.0"
 geo = { version = "0.28.0", features = ["use-serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 geojson = "0.24.1"
+open = { version = "5.1.4" }
+urlencoding = { version = "2.1.3" }
