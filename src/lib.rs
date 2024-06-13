@@ -2,7 +2,7 @@ pub mod cli;
 pub mod journeys;
 
 mod traces_to_geojson;
-mod validation;
+mod traces_validation;
 
 pub use self::traces_to_geojson::traces_to_geojson;
-pub use self::validation::validation;
+pub use self::traces_validation::traces_validation;

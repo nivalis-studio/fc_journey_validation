@@ -11,7 +11,7 @@ use geo::{
 
 use crate::traces_to_geojson::traces_to_geojson;
 
-pub fn validation(t1: GpsTrace, t2: GpsTrace) -> Result<(geo::LineString, geo::LineString)> {
+pub fn traces_validation(t1: GpsTrace, t2: GpsTrace) -> Result<(geo::LineString, geo::LineString)> {
     let line_strings: Vec<LineString<f64>> = [t1, t2]
         .iter()
         .map(|t| {
