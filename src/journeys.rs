@@ -96,7 +96,7 @@ pub struct GpsPoint {
     pub gps_trace_id: String,
 }
 
-impl From<&GpsPoint> for Point {
+impl From<&GpsPoint> for Point<f64> {
     fn from(value: &GpsPoint) -> Self {
         Self::new(value.longitude, value.latitude)
     }
