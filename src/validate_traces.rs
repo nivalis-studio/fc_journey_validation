@@ -4,7 +4,7 @@ use anyhow::Result;
 use geo::FrechetDistance;
 use geo::HaversineLength;
 
-pub fn traces_validation(t1: GpsTrace, t2: GpsTrace) -> Result<(Trace, Trace)> {
+pub fn validate_traces(t1: GpsTrace, t2: GpsTrace) -> Result<(Trace, Trace)> {
     let line_string1: Trace = t1.into();
     let line_string2: Trace = t2.into();
 
