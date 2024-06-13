@@ -1,10 +1,14 @@
-use crate::{is_point_in_france, journeys::Journey};
+use crate::{is_point_in_france, journeys::Journey, journeys::Trace};
 use anyhow::Result;
+use geo::Closest;
+use geo::HaversineClosestPoint;
+use geo::HaversineDistance;
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
 const MIN_DISTANCE_IN_METERS: u16 = 1000;
 const MAX_DISTANCE_IN_METERS: u32 = 80_000;
 
+#[derive(Debug)]
 pub enum ValidateReturnError {
     Error {
         success: bool,
@@ -13,10 +17,12 @@ pub enum ValidateReturnError {
     },
 }
 
+#[derive(Debug)]
 pub enum ValidateReturnSuccess<T> {
     Success { success: bool, data: T },
 }
 
+#[derive(Debug)]
 pub enum ValidateReturn<T> {
     Error(ValidateReturnError),
     Success(ValidateReturnSuccess<T>),
@@ -158,7 +164,30 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    let distance = 0.0;
+    println!("driver_trace.length: {:?}", driver_trace.points.len());
+
+    let mut distance = 0.0;
+
+    for point1 in driver_trace.points.iter() {
+        let point1: geo::Point<f64> = point1.into();
+        let point2: geo::Closest<f64> = Trace::from(passenger_trace)
+            .as_ref()
+            .haversine_closest_point(&point1);
+
+        println!("point2: {:?}", point2);
+
+        let point2: geo::Point<f64> = match point2 {
+            Closest::SinglePoint(point) => point,
+            Closest::Intersection(intersection) => intersection,
+            Closest::Indeterminate => continue,
+        };
+
+        let dist = point1.haversine_distance(&point2);
+
+        if dist < 1000.0 {
+            distance += dist;
+        }
+    }
 
     if distance < MIN_DISTANCE_IN_METERS as f64 {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
