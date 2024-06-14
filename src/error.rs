@@ -24,6 +24,9 @@ pub enum JourneyValidationError {
     #[error("Not in France")]
     NotInFrance,
 
+    #[error("Distance too {0}")]
+    InvalidDistance(String),
+
     #[error("invalid json")]
     Serde(#[from] serde_json::Error),
 
