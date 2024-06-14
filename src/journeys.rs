@@ -1,4 +1,10 @@
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
 use chrono::{DateTime, Utc};
+use clap::error;
 use serde::{Deserialize, Serialize};
 
 use crate::traces::GpsTrace;
@@ -24,4 +30,86 @@ pub struct Journey {
     pub cancel_reason: Option<String>,
     pub canceled_at: Option<DateTime<Utc>>,
     pub gps_trace: Vec<GpsTrace>,
+}
+
+impl Journey {
+    pub fn validate(&self) -> Result<()> {
+        if !self.has_startime() {
+            return Err(JourneyValidationError::MissingStartTime);
+        }
+        if !self.has_endtime() {
+            return Err(JourneyValidationError::MissingEndTime);
+        }
+        if !self.has_driver() {
+            return Err(JourneyValidationError::MissingDriver);
+        }
+        if !self.has_passenger() {
+            return Err(JourneyValidationError::MissingPassenger);
+        }
+        if !self.has_valid_passenger() {
+            return Err(JourneyValidationError::InvalidPassenger);
+        }
+
+        Ok(())
+    }
+
+    pub fn has_startime(&self) -> bool {
+        self.start_time.is_some()
+    }
+
+    pub fn has_endtime(&self) -> bool {
+        self.end_time.is_some()
+    }
+
+    pub fn has_driver(&self) -> bool {
+        self.driver_id.is_some()
+    }
+
+    pub fn has_passenger(&self) -> bool {
+        self.passenger_id.is_some()
+    }
+
+    pub fn has_valid_passenger(&self) -> bool {
+        self.has_passenger() && self.passenger_id != self.driver_id
+    }
+}
+
+impl TryFrom<&str> for Journey {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: &str) -> std::prelude::v1::Result<Self, Self::Error> {
+        Ok(serde_json::from_str(value)?)
+    }
+}
+
+impl TryFrom<PathBuf> for Journey {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: PathBuf) -> std::prelude::v1::Result<Self, Self::Error> {
+        let json_string = std::fs::read_to_string(value)?;
+
+        Self::try_from(json_string.as_ref())
+    }
+}
+
+pub type Result<T, E = JourneyValidationError> = std::result::Result<T, E>;
+
+#[derive(thiserror::Error, Debug)]
+pub enum JourneyValidationError {
+    #[error("Missing startTime")]
+    MissingStartTime,
+    #[error("Missing endTime")]
+    MissingEndTime,
+    #[error("Missing driver")]
+    MissingDriver,
+    #[error("Missing passenger")]
+    MissingPassenger,
+    #[error("Driver is passenger")]
+    InvalidPassenger,
+
+    #[error("invalid json")]
+    Serde(#[from] serde_json::Error),
+
+    #[error("error while reading json file")]
+    Io(#[from] std::io::Error),
 }
