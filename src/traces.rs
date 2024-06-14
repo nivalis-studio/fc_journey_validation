@@ -200,7 +200,6 @@ impl TracesPair {
         let geojson = self.to_geojson().to_string();
 
         let uri_data = urlencoding::encode(&geojson);
-
         let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
 
         open::that(url).context("Failed to open geojson in the default browser")?;
