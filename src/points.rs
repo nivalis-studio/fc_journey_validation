@@ -29,13 +29,6 @@ impl GpsPoint {
 
         point.is_within(&*FRANCE)
     }
-
-    pub fn _is_point_in_france(point: &GpsPoint) -> bool {
-        point.latitude >= 41.33
-            && point.latitude <= 51.09
-            && point.longitude >= -5.56
-            && point.longitude <= 9.56
-    }
 }
 
 impl From<&GpsPoint> for Point<f64> {
