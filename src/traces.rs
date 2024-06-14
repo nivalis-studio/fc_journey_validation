@@ -11,6 +11,8 @@ use crate::error::JourneyValidationError;
 use crate::points::GpsPoint;
 use crate::Result;
 
+const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GpsTrace {
@@ -28,6 +30,62 @@ impl GpsTrace {
     pub fn validate(self) -> Result<Self> {
         if self.points.len() < 2 {
             return Err(JourneyValidationError::EmptyTrace(self.id.to_owned()));
+        }
+
+        Ok(self)
+    }
+
+    pub fn get_edges(&self) -> Result<(&GpsPoint, &GpsPoint)> {
+        let start = self
+            .points
+            .first()
+            .ok_or(JourneyValidationError::EmptyTrace(self.id.to_owned()))?;
+        let end = self
+            .points
+            .last()
+            .ok_or(JourneyValidationError::EmptyTrace(self.id.to_owned()))?;
+
+        Ok((start, end))
+    }
+
+    pub fn is_in_france(&self) -> Result<bool> {
+        let (start, end) = self.get_edges()?;
+
+        Ok(start.is_in_france() || end.is_in_france())
+    }
+}
+
+pub struct TracesPair(pub GpsTrace, pub GpsTrace);
+
+impl TracesPair {
+    pub fn validate(self) -> Result<Self> {
+        let driver_trace = &self.0;
+        let passenger_trace = &self.1;
+        let (driver_start, driver_end) = driver_trace.get_edges()?;
+        let (passenger_start, passenger_end) = passenger_trace.get_edges()?;
+
+        let validate_timestamps_delta = |points: (&GpsPoint, &GpsPoint), name: &str| {
+            let first = points.0;
+            let second = points.1;
+
+            let delta = first
+                .timestamp
+                .signed_duration_since(second.timestamp)
+                .num_seconds()
+                .abs();
+
+            if delta > MAX_DELTA_IN_MILLISECONDS as i64 {
+                return Err(JourneyValidationError::TimestampsDeltaTooBig(name.into()));
+            }
+
+            Ok(())
+        };
+
+        validate_timestamps_delta((driver_start, passenger_start), "start")?;
+        validate_timestamps_delta((driver_end, passenger_end), "end")?;
+
+        if !driver_trace.is_in_france()? || !passenger_trace.is_in_france()? {
+            return Err(JourneyValidationError::NotInFrance);
         }
 
         Ok(self)
