@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::JourneyValidationError;
 use crate::points::GpsPoint;
-use crate::Result;
+use crate::{normalize_frechet_distance, Result};
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
 const MIN_DISTANCE_IN_METERS: u16 = 1000;
@@ -101,7 +101,7 @@ impl TracesPair {
         let passenger_trace = Trace::from(&self.1);
 
         // TODO: do something with this
-        driver_trace.compare_distance(&passenger_trace);
+        driver_trace.get_confidence(&passenger_trace);
 
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
@@ -162,8 +162,10 @@ impl Trace {
         Self(line_string)
     }
 
-    pub fn compare_distance(&self, other: &Trace) -> f64 {
-        self.frechet_distance(other)
+    pub fn get_confidence(&self, other: &Trace) -> f64 {
+        let frechet = self.frechet_distance(other);
+
+        normalize_frechet_distance(frechet)
     }
 }
 
