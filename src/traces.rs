@@ -7,7 +7,9 @@ use geo::{
 use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
 
+use crate::error::JourneyValidationError;
 use crate::points::GpsPoint;
+use crate::Result;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +22,16 @@ pub struct GpsTrace {
     pub journey_id: String,
     pub user_id: String,
     pub points: Vec<GpsPoint>,
+}
+
+impl GpsTrace {
+    pub fn validate(self) -> Result<Self> {
+        if self.points.len() < 2 {
+            return Err(JourneyValidationError::EmptyTrace(self.id.to_owned()));
+        }
+
+        Ok(self)
+    }
 }
 
 #[derive(Clone, Debug)]

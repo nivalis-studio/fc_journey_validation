@@ -4,12 +4,19 @@ pub enum JourneyValidationError {
     MissingStartTime,
     #[error("Missing endTime")]
     MissingEndTime,
+
     #[error("Missing driver")]
     MissingDriver,
     #[error("Missing passenger")]
     MissingPassenger,
     #[error("Driver is passenger")]
     InvalidPassenger,
+
+    #[error("Missing {0} trace")]
+    MissingTrace(String),
+
+    #[error("Empty trace {0}")]
+    EmptyTrace(String),
 
     #[error("invalid json")]
     Serde(#[from] serde_json::Error),

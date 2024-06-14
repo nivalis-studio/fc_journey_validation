@@ -25,52 +25,7 @@ pub enum ValidateReturn<T> {
 }
 
 pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
-    journey.validate()?;
-
-    let driver_id = journey.driver_id.unwrap();
-    let passenger_id = journey.passenger_id.unwrap();
-
-    let driver_trace = journey
-        .gps_trace
-        .iter()
-        .find(|trace| trace.user_id == driver_id);
-
-    if driver_trace.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Driver trace not found",
-        }));
-    }
-
-    let driver_trace = driver_trace.unwrap();
-
-    if driver_trace.points.len() < 2 {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Driver trace is empty",
-        }));
-    }
-
-    let passenger_trace = journey
-        .gps_trace
-        .iter()
-        .find(|trace| trace.user_id == passenger_id);
-
-    if passenger_trace.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Passenger trace not found",
-        }));
-    }
-
-    let passenger_trace = passenger_trace.unwrap();
-
-    if passenger_trace.points.len() < 2 {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Passenger trace is empty",
-        }));
-    }
+    let (driver_trace, passenger_trace) = journey.validate()?;
 
     let driver_start_point = driver_trace.points.first().unwrap();
 
@@ -118,7 +73,7 @@ pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
         }));
     }
 
-    let t1: Trace = driver_trace.into();
+    let t1: Trace = driver_trace.clone().into();
     let t2: Trace = passenger_trace.into();
 
     let validate_traces_res = validate_traces(&t1, &t2);
