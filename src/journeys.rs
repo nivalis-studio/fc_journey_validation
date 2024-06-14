@@ -29,24 +29,46 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn validate(&self) -> Result<()> {
+    pub fn validate(self) -> Result<(GpsTrace, GpsTrace)> {
         if !self.has_startime() {
             return Err(JourneyValidationError::MissingStartTime);
         }
         if !self.has_endtime() {
             return Err(JourneyValidationError::MissingEndTime);
         }
-        if !self.has_driver() {
-            return Err(JourneyValidationError::MissingDriver);
-        }
-        if !self.has_passenger() {
-            return Err(JourneyValidationError::MissingPassenger);
-        }
-        if !self.has_valid_passenger() {
+
+        let driver_id = self
+            .driver_id
+            .as_ref()
+            .ok_or(JourneyValidationError::MissingDriver)?;
+
+        let passenger_id = self
+            .passenger_id
+            .as_ref()
+            .ok_or(JourneyValidationError::MissingPassenger)?;
+
+        if passenger_id == driver_id {
             return Err(JourneyValidationError::InvalidPassenger);
         }
 
-        Ok(())
+        let driver_trace = self
+            .get_user_trace(driver_id)
+            .ok_or(JourneyValidationError::MissingTrace("driver".into()))?
+            .validate()?;
+
+        let passenger_trace = self
+            .get_user_trace(passenger_id)
+            .ok_or(JourneyValidationError::MissingTrace("passenger".into()))?
+            .validate()?;
+
+        Ok((driver_trace, passenger_trace))
+    }
+
+    pub fn get_user_trace(&self, user_id: &str) -> Option<GpsTrace> {
+        self.gps_trace
+            .iter()
+            .find(|t| t.user_id == user_id)
+            .cloned()
     }
 
     pub fn has_startime(&self) -> bool {
@@ -55,18 +77,6 @@ impl Journey {
 
     pub fn has_endtime(&self) -> bool {
         self.end_time.is_some()
-    }
-
-    pub fn has_driver(&self) -> bool {
-        self.driver_id.is_some()
-    }
-
-    pub fn has_passenger(&self) -> bool {
-        self.passenger_id.is_some()
-    }
-
-    pub fn has_valid_passenger(&self) -> bool {
-        self.has_passenger() && self.passenger_id != self.driver_id
     }
 }
 
