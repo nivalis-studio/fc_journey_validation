@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::JourneyValidationError,
+    output::Output,
     traces::{GpsTrace, GpsTracesPair},
     Result,
 };
@@ -36,13 +37,18 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn from_stin() -> Result<Self> {
+    pub fn from_stdin() -> Result<Self> {
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer)?;
 
         Journey::try_from(buffer)
     }
-    // pub fn validate(self) -> Result<SuccessOutput> {}
+    pub fn validate(self) -> Result<Output> {
+        let traces = self.get_traces()?.validate()?;
+
+        traces.get_result()
+    }
+
     pub fn get_traces(&self) -> Result<GpsTracesPair> {
         let driver_id = self
             .driver_id

@@ -8,14 +8,14 @@ use crate::{error::JourneyValidationError, points::GpsPoint};
 #[serde(rename_all = "camelCase")]
 pub struct Output {
     pub success: bool,
-    cancel_reason: Option<String>,
-    distance_driver: Option<f64>,
-    distance_passenger: Option<f64>,
-    common_distance: Option<f64>,
-    common_start_point: Option<GpsPoint>,
-    common_end_point: Option<GpsPoint>,
-    average_confidence: Option<f32>,
-    traces: Option<(TracesOuput, TracesOuput)>,
+    pub cancel_reason: Option<String>,
+    pub distance_driver: Option<f64>,
+    pub distance_passenger: Option<f64>,
+    pub common_distance: Option<f64>,
+    pub common_start_point: Option<GpsPoint>,
+    pub common_end_point: Option<GpsPoint>,
+    pub average_confidence: Option<f64>,
+    pub traces: Option<(TraceOuput, TraceOuput)>,
 }
 
 impl Output {
@@ -38,7 +38,7 @@ impl From<JourneyValidationError> for Output {
 }
 
 #[derive(Serialize)]
-pub struct TracesOuput {
-    id: String,
-    points: Vec<GpsPoint>,
+pub struct TraceOuput {
+    pub id: String,
+    pub points: Vec<GpsPoint>,
 }
