@@ -1,6 +1,6 @@
 use crate::{is_point_in_france, journeys::Journey, journeys::Trace, validate_traces};
 use anyhow::Result;
-use geo::{Closest, HaversineLength, LineString, Point};
+use geo::{Closest, Coord, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
@@ -169,7 +169,7 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
     let validate_traces_res = validate_traces(t1.clone(), t2.clone());
     println!("Frechet distance: {:?}", validate_traces_res.unwrap());
 
-    let mut distance = 0.0;
+    let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
     for point1 in driver_trace.points.iter() {
         let point1: Point<f64> = point1.into();
@@ -184,11 +184,17 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         let dist = point1.haversine_distance(&point2);
 
         if dist < 1000.0 {
-            distance += dist;
+            common_coords.push(Coord {
+                x: point1.x(),
+                y: point1.y(),
+            })
         }
     }
 
-    let time = std::time::Instant::now();
+    let common_line_string: LineString = LineString::new(common_coords);
+    let distance = common_line_string.haversine_length();
+
+    println!("Common distance: {:?}", distance);
 
     if distance < MIN_DISTANCE_IN_METERS as f64 {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
