@@ -7,11 +7,12 @@ fn main() {
 
     let journey_result = match cli.file_path {
         Some(path) => Journey::try_from(path),
-        None => Journey::from_stin(),
+        None => Journey::from_stdin(),
     };
 
     let output = match journey_result {
-        Ok(_) => Output::success(),
+        // TODO: handle error conversion to output
+        Ok(journey) => journey.validate().unwrap(),
         Err(err) => Output::from(err),
     };
 

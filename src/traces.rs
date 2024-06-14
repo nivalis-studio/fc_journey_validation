@@ -12,6 +12,7 @@ use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use serde::{Deserialize, Serialize};
 
 use crate::error::JourneyValidationError;
+use crate::output::Output;
 use crate::points::GpsPoint;
 use crate::Result;
 
@@ -92,8 +93,6 @@ impl GpsTracesPair {
             return Err(JourneyValidationError::NotInFrance);
         }
 
-        self.validate_distance()?;
-
         Ok(self)
     }
 
@@ -105,10 +104,10 @@ impl GpsTracesPair {
         1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
     }
 
-    pub fn validate_distance(&self) -> Result<&Self> {
-        let passenger_trace = Trace::from(&self.1);
+    pub fn get_result(&self) -> Result<Output> {
+        let (driver_trace, passenger_trace) = self.to_traces();
 
-        let _confidence = self.get_confidence();
+        let confidence = self.get_confidence();
 
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
@@ -135,8 +134,9 @@ impl GpsTracesPair {
 
         let common_line_string: LineString = LineString::new(common_coords);
 
-        let _start_point = common_line_string.0.first();
-        let _end_point = common_line_string.0.last();
+        // TODO: get GpsPoint from those Coords
+        let _common_start_point = common_line_string.0.first();
+        let _common_end_point = common_line_string.0.last();
 
         let distance = common_line_string.haversine_length();
 
@@ -148,7 +148,17 @@ impl GpsTracesPair {
             return Err(JourneyValidationError::InvalidDistance("long".into()));
         }
 
-        Ok(self)
+        // TODO: get Simplified GpsPoint (not just simplified Trace)
+        let output = Output {
+            success: true,
+            average_confidence: Some(confidence),
+            common_distance: Some(distance),
+            distance_driver: Some(driver_trace.haversine_length()),
+            distance_passenger: Some(passenger_trace.haversine_length()),
+            ..Default::default()
+        };
+
+        Ok(output)
     }
 
     pub fn to_traces(&self) -> (Trace, Trace) {
