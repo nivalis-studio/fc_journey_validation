@@ -1,5 +1,5 @@
-use crate::journeys::Result;
 use crate::traces::Trace;
+use crate::Result;
 use crate::{journeys::Journey, validate_traces};
 use geo::{Closest, Coord, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
