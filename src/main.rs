@@ -1,26 +1,30 @@
 use clap::Parser;
-use gps_trajectory_validation::{cli::Cli, journeys::Journey};
-use std::io::{self, Read};
+use gps_trajectory_validation::{cli::Cli, journeys::Journey, output::Output};
+use std::io::{self, Write};
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     let cli = Cli::parse();
 
-    let journey = match cli.file_path {
+    let journey_result = match cli.file_path {
         Some(path) => Journey::try_from(path),
-        None => {
-            let mut buffer = String::new();
-            io::stdin().read_to_string(&mut buffer)?;
-            Journey::try_from(buffer)
-        }
-    }?;
+        None => Journey::from_stin(),
+    };
 
-    let traces = journey.get_traces()?;
-    let traces = traces.validate()?;
+    let output = match journey_result {
+        Ok(_) => Output::success(),
+        Err(err) => Output::from(err),
+    };
 
-    traces.visualize()?;
-    let simplified = traces.to_simplified_traces();
+    let output_json = serde_json::to_string(&output).unwrap();
 
-    dbg!(simplified.0.lines().len());
+    let mut stdout = io::stdout().lock();
+    let mut stderr = io::stderr().lock();
 
-    Ok(())
+    let writer: &mut dyn Write = if output.success {
+        &mut stdout
+    } else {
+        &mut stderr
+    };
+
+    write!(writer, "{}", output_json).unwrap();
 }
