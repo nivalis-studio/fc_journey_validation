@@ -97,11 +97,18 @@ impl TracesPair {
         Ok(self)
     }
 
+    pub fn get_confidence(&self) -> f64 {
+        let (driver, passenger) = self.to_traces();
+
+        let frechet_distance = driver.get_similarity(&passenger);
+
+        1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
+    }
+
     pub fn validate_distance(&self) -> Result<&Self> {
-        let driver_trace = Trace::from(&self.0);
         let passenger_trace = Trace::from(&self.1);
 
-        let _confidence = driver_trace.get_confidence(&passenger_trace);
+        let _confidence = self.get_confidence();
 
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
@@ -144,15 +151,20 @@ impl TracesPair {
         Ok(self)
     }
 
-    pub fn simplified(&self) -> (Trace, Trace) {
-        let driver_trace = Trace::from(&self.0).simplified();
-        let passenger_trace = Trace::from(&self.1).simplified();
+    pub fn to_traces(&self) -> (Trace, Trace) {
+        let TracesPair(driver, passenger) = self;
 
-        (driver_trace, passenger_trace)
+        (driver.into(), passenger.into())
+    }
+
+    pub fn to_simplified_traces(&self) -> (Trace, Trace) {
+        let (driver, passenger) = self.to_traces();
+
+        (driver.simplified(), passenger.simplified())
     }
 
     pub fn to_geojson(&self) -> FeatureCollection {
-        let (driver_trace, passenger_trace) = self.simplified();
+        let (driver_trace, passenger_trace) = self.to_simplified_traces();
 
         let create_properties = |color: &str, width: &str, opacity: &str| -> Option<JsonObject> {
             let mut properties = JsonObject::new();
@@ -216,20 +228,14 @@ impl TracesPair {
 pub struct Trace(LineString);
 
 impl Trace {
-    pub fn inner(self) -> LineString {
-        self.0
-    }
-
     pub fn simplified(&self) -> Self {
         let line_string = self.remove_repeated_points().simplify(&0.00001);
 
         Self(line_string)
     }
 
-    pub fn get_confidence(&self, other: &Trace) -> f64 {
-        let frechet_distance = self.frechet_distance(other);
-
-        1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
+    pub fn get_similarity(&self, other: &Trace) -> f64 {
+        self.frechet_distance(other)
     }
 }
 

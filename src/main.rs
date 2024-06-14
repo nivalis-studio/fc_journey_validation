@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
     let traces = traces.validate()?;
 
     traces.visualize()?;
-    let simplified = traces.simplified();
+    let simplified = traces.to_simplified_traces();
 
     dbg!(simplified.0.lines().len());
 
