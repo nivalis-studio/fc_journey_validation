@@ -44,7 +44,7 @@ pub struct Trace(LineString);
 
 impl Trace {
     pub fn simplified(self) -> Self {
-        let line_string = self.as_ref().remove_repeated_points().simplify(&0.1);
+        let line_string = self.as_ref().remove_repeated_points().simplify(&0.00001);
 
         Self(line_string)
     }
@@ -67,8 +67,7 @@ impl From<&GpsTrace> for Trace {
             .map(|(&point, _)| coord! { x: point.x(), y: point.y() })
             .collect();
 
-        let line_string = line_string.densify_haversine(0.5);
-
+        let line_string = line_string.densify_haversine(10.0);
         Self(line_string)
     }
 }
