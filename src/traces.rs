@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::JourneyValidationError;
 use crate::points::GpsPoint;
-use crate::{normalize_frechet_distance, Result};
+use crate::Result;
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
 const MIN_DISTANCE_IN_METERS: u16 = 1000;
