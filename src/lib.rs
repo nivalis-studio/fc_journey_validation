@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod error;
 pub mod journeys;
+pub mod output;
 pub mod points;
 pub mod traces;
 
