@@ -45,6 +45,7 @@ impl GpsTrace {
         if self.points.len() < 2 {
             return Err(JourneyValidationError::EmptyTrace(self.id.to_owned()));
         }
+
         let start = self.points.first().unwrap();
         let end = self.points.last().unwrap();
 
