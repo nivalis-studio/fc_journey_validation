@@ -1,4 +1,5 @@
-use crate::{journeys::Journey, journeys::Trace, validate_traces};
+use crate::traces::Trace;
+use crate::{journeys::Journey, validate_traces};
 use anyhow::Result;
 use geo::{Closest, Coord, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
@@ -113,9 +114,9 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    let driver_start_point = driver_trace.points.get(0).unwrap();
+    let driver_start_point = driver_trace.points.first().unwrap();
 
-    let passenger_start_point = passenger_trace.points.get(0).unwrap();
+    let passenger_start_point = passenger_trace.points.first().unwrap();
 
     let start_point_delta = driver_start_point
         .timestamp
@@ -130,15 +131,9 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    let driver_end_point = driver_trace
-        .points
-        .get(driver_trace.points.len() - 1)
-        .unwrap();
+    let driver_end_point = driver_trace.points.last().unwrap();
 
-    let passenger_end_point = passenger_trace
-        .points
-        .get(passenger_trace.points.len() - 1)
-        .unwrap();
+    let passenger_end_point = passenger_trace.points.last().unwrap();
 
     let end_point_delta = driver_end_point
         .timestamp
@@ -168,14 +163,14 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
     let t1: Trace = driver_trace.into();
     let t2: Trace = passenger_trace.into();
 
-    let validate_traces_res = validate_traces(t1.clone(), t2.clone());
+    let validate_traces_res = validate_traces(&t1, &t2);
     println!("Frechet distance: {:?}", validate_traces_res.unwrap());
 
     let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
     for point1 in driver_trace.points.iter() {
         let point1: Point<f64> = point1.into();
-        let point2: Closest<f64> = t2.as_ref().haversine_closest_point(&point1);
+        let point2: Closest<f64> = t2.haversine_closest_point(&point1);
 
         let point2: Point<f64> = match point2 {
             Closest::SinglePoint(point) => point,
@@ -215,20 +210,18 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
     let lines: Vec<LineString> = [t1, t2]
         .iter()
         .map(|trace| {
-            let line_string = trace.clone().simplified();
-            let length = line_string.as_ref().haversine_length();
+            let trace = trace.simplified();
+            let length = trace.haversine_length();
             println!("Line length: {} meters", length);
 
-            line_string.as_ref().clone()
+            trace.inner()
         })
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
+        .collect::<Vec<_>>();
 
-    crate::traces_to_geojson(lines.get(0).unwrap(), lines.get(1).unwrap()).unwrap();
+    crate::traces_to_geojson(lines.first().unwrap(), lines.get(1).unwrap()).unwrap();
 
-    return Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
+    Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
         success: true,
         data: (),
-    }));
+    }))
 }
