@@ -1,4 +1,4 @@
-use crate::{is_point_in_france, journeys::Journey, journeys::Trace, validate_traces};
+use crate::{journeys::Journey, journeys::Trace, validate_traces};
 use anyhow::Result;
 use geo::{Closest, Coord, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
@@ -153,10 +153,10 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    let is_in_france = is_point_in_france(driver_start_point).unwrap()
-        || is_point_in_france(passenger_start_point).unwrap()
-        || is_point_in_france(driver_end_point).unwrap()
-        || is_point_in_france(passenger_end_point).unwrap();
+    let is_in_france = driver_start_point.is_in_france()
+        || passenger_start_point.is_in_france()
+        || driver_end_point.is_in_france()
+        || passenger_end_point.is_in_france();
 
     if !is_in_france {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
