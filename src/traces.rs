@@ -59,9 +59,9 @@ impl GpsTrace {
     }
 }
 
-pub struct TracesPair(pub GpsTrace, pub GpsTrace);
+pub struct GpsTracesPair(pub GpsTrace, pub GpsTrace);
 
-impl TracesPair {
+impl GpsTracesPair {
     pub fn validate(self) -> Result<Self> {
         let driver_trace = &self.0;
         let passenger_trace = &self.1;
@@ -152,7 +152,7 @@ impl TracesPair {
     }
 
     pub fn to_traces(&self) -> (Trace, Trace) {
-        let TracesPair(driver, passenger) = self;
+        let GpsTracesPair(driver, passenger) = self;
 
         (driver.into(), passenger.into())
     }
