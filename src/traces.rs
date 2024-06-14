@@ -101,7 +101,7 @@ impl TracesPair {
         let driver_trace = Trace::from(&self.0);
         let passenger_trace = Trace::from(&self.1);
 
-        let confidence = driver_trace.get_confidence(&passenger_trace);
+        let _confidence = driver_trace.get_confidence(&passenger_trace);
 
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
 
@@ -128,8 +128,8 @@ impl TracesPair {
 
         let common_line_string: LineString = LineString::new(common_coords);
 
-        let start_point = common_line_string.0.first();
-        let end_point = common_line_string.0.last();
+        let _start_point = common_line_string.0.first();
+        let _end_point = common_line_string.0.last();
 
         let distance = common_line_string.haversine_length();
 
