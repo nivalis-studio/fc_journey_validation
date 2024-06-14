@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -33,6 +36,13 @@ pub struct Journey {
 }
 
 impl Journey {
+    pub fn from_stin() -> Result<Self> {
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+
+        Journey::try_from(buffer)
+    }
+    // pub fn validate(self) -> Result<SuccessOutput> {}
     pub fn get_traces(&self) -> Result<GpsTracesPair> {
         let driver_id = self
             .driver_id
