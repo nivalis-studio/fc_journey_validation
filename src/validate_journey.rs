@@ -1,8 +1,7 @@
-use crate::{is_point_in_france, journeys::Journey, journeys::Trace};
+use crate::{is_point_in_france, journeys::Journey, journeys::Trace, validate_traces};
 use anyhow::Result;
-use geo::Closest;
-use geo::HaversineClosestPoint;
-use geo::HaversineDistance;
+use geo::{Closest, Point};
+use geo::{HaversineClosestPoint, HaversineDistance};
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
 const MIN_DISTANCE_IN_METERS: u16 = 1000;
@@ -164,19 +163,23 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
+    let validate_traces_res = validate_traces(driver_trace.clone(), passenger_trace.clone());
+
+    println!("Frechet distance: {:?}", validate_traces_res.unwrap());
+
     println!("driver_trace.length: {:?}", driver_trace.points.len());
 
     let mut distance = 0.0;
 
     for point1 in driver_trace.points.iter() {
-        let point1: geo::Point<f64> = point1.into();
-        let point2: geo::Closest<f64> = Trace::from(passenger_trace)
+        let point1: Point<f64> = point1.into();
+        let point2: Closest<f64> = Trace::from(passenger_trace)
             .as_ref()
             .haversine_closest_point(&point1);
 
         println!("point2: {:?}", point2);
 
-        let point2: geo::Point<f64> = match point2 {
+        let point2: Point<f64> = match point2 {
             Closest::SinglePoint(point) => point,
             Closest::Intersection(intersection) => intersection,
             Closest::Indeterminate => continue,
