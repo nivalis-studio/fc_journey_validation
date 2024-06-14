@@ -18,6 +18,12 @@ pub enum JourneyValidationError {
     #[error("Empty trace {0}")]
     EmptyTrace(String),
 
+    #[error("{0} points timestamps are too far apart")]
+    TimestampsDeltaTooBig(String),
+
+    #[error("Not in France")]
+    NotInFrance,
+
     #[error("invalid json")]
     Serde(#[from] serde_json::Error),
 

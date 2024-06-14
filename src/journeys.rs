@@ -3,7 +3,11 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{error::JourneyValidationError, traces::GpsTrace, Result};
+use crate::{
+    error::JourneyValidationError,
+    traces::{GpsTrace, TracesPair},
+    Result,
+};
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -29,7 +33,7 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn validate(self) -> Result<(GpsTrace, GpsTrace)> {
+    pub fn validate(self) -> Result<TracesPair> {
         if !self.has_startime() {
             return Err(JourneyValidationError::MissingStartTime);
         }
@@ -53,15 +57,13 @@ impl Journey {
 
         let driver_trace = self
             .get_user_trace(driver_id)
-            .ok_or(JourneyValidationError::MissingTrace("driver".into()))?
-            .validate()?;
+            .ok_or(JourneyValidationError::MissingTrace("driver".into()))?;
 
         let passenger_trace = self
             .get_user_trace(passenger_id)
-            .ok_or(JourneyValidationError::MissingTrace("passenger".into()))?
-            .validate()?;
+            .ok_or(JourneyValidationError::MissingTrace("passenger".into()))?;
 
-        Ok((driver_trace, passenger_trace))
+        Ok(TracesPair(driver_trace, passenger_trace))
     }
 
     pub fn get_user_trace(&self, user_id: &str) -> Option<GpsTrace> {
