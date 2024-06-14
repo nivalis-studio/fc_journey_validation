@@ -2,7 +2,8 @@ use std::ops::Deref;
 
 use chrono::{DateTime, Utc};
 use geo::{
-    coord, DensifyHaversine, FrechetDistance, OutlierDetection, RemoveRepeatedPoints, Simplify,
+    coord, Closest, Coord, DensifyHaversine, FrechetDistance, HaversineClosestPoint,
+    HaversineDistance, HaversineLength, OutlierDetection, RemoveRepeatedPoints, Simplify,
 };
 use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
@@ -12,6 +13,8 @@ use crate::points::GpsPoint;
 use crate::Result;
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
+const MIN_DISTANCE_IN_METERS: u16 = 1000;
+const MAX_DISTANCE_IN_METERS: u32 = 80_000;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -88,7 +91,60 @@ impl TracesPair {
             return Err(JourneyValidationError::NotInFrance);
         }
 
+        self.validate_distance()?;
+
         Ok(self)
+    }
+
+    pub fn validate_distance(&self) -> Result<&Self> {
+        let driver_trace = Trace::from(&self.0);
+        let passenger_trace = Trace::from(&self.1);
+
+        // TODO: do something with this
+        driver_trace.compare_distance(&passenger_trace);
+
+        let mut common_coords: Vec<Coord<f64>> = Vec::new();
+
+        for driver_point in self.0.points.iter() {
+            let driver_point: Point<f64> = driver_point.into();
+            let passenger_point: Closest<f64> =
+                passenger_trace.haversine_closest_point(&driver_point);
+
+            let passenger_point: Point<f64> = match passenger_point {
+                Closest::SinglePoint(point) => point,
+                Closest::Intersection(intersection) => intersection,
+                Closest::Indeterminate => continue,
+            };
+
+            let dist = driver_point.haversine_distance(&passenger_point);
+
+            if dist < 1000.0 {
+                common_coords.push(Coord {
+                    x: driver_point.x(),
+                    y: driver_point.y(),
+                })
+            }
+        }
+
+        let common_line_string: LineString = LineString::new(common_coords);
+        let distance = common_line_string.haversine_length();
+
+        if distance < MIN_DISTANCE_IN_METERS as f64 {
+            return Err(JourneyValidationError::InvalidDistance("short".into()));
+        }
+
+        if distance > MAX_DISTANCE_IN_METERS as f64 {
+            return Err(JourneyValidationError::InvalidDistance("long".into()));
+        }
+
+        Ok(self)
+    }
+
+    pub fn simplified(&self) -> (Trace, Trace) {
+        let driver_trace = Trace::from(&self.0).simplified();
+        let passenger_trace = Trace::from(&self.1).simplified();
+
+        (driver_trace, passenger_trace)
     }
 }
 
