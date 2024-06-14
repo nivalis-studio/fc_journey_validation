@@ -1,5 +1,5 @@
 use clap::Parser;
-use gps_trajectory_validation::{cli::Cli, journeys::Journey, validate_journey};
+use gps_trajectory_validation::{cli::Cli, journeys::Journey};
 use std::io::{self, Read};
 
 fn main() -> anyhow::Result<()> {
@@ -14,8 +14,13 @@ fn main() -> anyhow::Result<()> {
         }
     }?;
 
-    let res = validate_journey(journey)?;
-    println!("{:?}", res);
+    let traces = journey.get_traces()?;
+    let traces = traces.validate()?;
+
+    traces.visualize()?;
+    let simplified = traces.simplified();
+
+    dbg!(simplified.0.lines().len());
 
     Ok(())
 }
