@@ -34,10 +34,10 @@ pub struct Journey {
 
 impl Journey {
     pub fn validate(self) -> Result<TracesPair> {
-        if !self.has_startime() {
+        if self.start_time.is_none() {
             return Err(JourneyValidationError::MissingStartTime);
         }
-        if !self.has_endtime() {
+        if self.end_time.is_none() {
             return Err(JourneyValidationError::MissingEndTime);
         }
 
@@ -71,14 +71,6 @@ impl Journey {
             .iter()
             .find(|t| t.user_id == user_id)
             .cloned()
-    }
-
-    pub fn has_startime(&self) -> bool {
-        self.start_time.is_some()
-    }
-
-    pub fn has_endtime(&self) -> bool {
-        self.end_time.is_some()
     }
 }
 
