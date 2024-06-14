@@ -19,12 +19,11 @@ pub enum ValidateReturn<T> {
 
 pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
     let traces = journey.get_traces()?;
-
     let traces = traces.validate()?;
 
     traces.visualize()?;
-
     traces.simplified();
+
     Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
         success: true,
         data: (),
