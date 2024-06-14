@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Journey {
-    pub index: i32,
+    pub index: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub start_city: Option<String>,
@@ -16,9 +16,9 @@ pub struct Journey {
     pub flagged: bool,
     pub status: String,
     pub processed: bool,
-    pub average_confidence: f64,
-    pub tolerance: f64,
-    pub distance: f64,
+    pub average_confidence: Option<f64>,
+    pub tolerance: Option<f64>,
+    pub distance: Option<f64>,
     pub driver_id: String,
     pub passenger_id: String,
     pub cancel_reason: Option<String>,
