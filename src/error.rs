@@ -32,4 +32,7 @@ pub enum JourneyValidationError {
 
     #[error("error while reading json file")]
     Io(#[from] std::io::Error),
+
+    #[error("unexpected error")]
+    Unexpected(#[from] anyhow::Error),
 }

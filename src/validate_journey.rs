@@ -20,10 +20,11 @@ pub enum ValidateReturn<T> {
 pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
     let traces = journey.get_traces()?;
 
-    let traces = traces.validate()?.simplified();
+    let traces = traces.validate()?;
 
-    crate::traces_to_geojson(&traces.0, &traces.1).unwrap();
+    traces.visualize()?;
 
+    traces.simplified();
     Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
         success: true,
         data: (),
