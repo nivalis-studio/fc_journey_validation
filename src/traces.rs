@@ -39,14 +39,11 @@ impl GpsTrace {
     }
 
     pub fn get_edges(&self) -> Result<(&GpsPoint, &GpsPoint)> {
-        let start = self
-            .points
-            .first()
-            .ok_or(JourneyValidationError::EmptyTrace(self.id.to_owned()))?;
-        let end = self
-            .points
-            .last()
-            .ok_or(JourneyValidationError::EmptyTrace(self.id.to_owned()))?;
+        if self.points.len() < 2 {
+            return Err(JourneyValidationError::EmptyTrace(self.id.to_owned()));
+        }
+        let start = self.points.first().unwrap();
+        let end = self.points.last().unwrap();
 
         Ok((start, end))
     }
