@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::JourneyValidationError,
-    traces::{GpsTrace, TracesPair},
+    traces::{GpsTrace, GpsTracesPair},
     Result,
 };
 
@@ -33,7 +33,7 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn get_traces(&self) -> Result<TracesPair> {
+    pub fn get_traces(&self) -> Result<GpsTracesPair> {
         let driver_id = self
             .driver_id
             .as_ref()
@@ -56,7 +56,7 @@ impl Journey {
             .get_user_trace(passenger_id)
             .ok_or(JourneyValidationError::MissingTrace("passenger".into()))?;
 
-        Ok(TracesPair(driver_trace, passenger_trace))
+        Ok(GpsTracesPair(driver_trace, passenger_trace))
     }
 
     pub fn get_user_trace(&self, user_id: &str) -> Option<GpsTrace> {
