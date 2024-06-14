@@ -47,6 +47,20 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
+    if journey.driver_id.is_none() {
+        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
+            success: false,
+            reason: "Driver not found",
+        }));
+    }
+
+    if journey.passenger_id.is_none() {
+        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
+            success: false,
+            reason: "Passenger not found",
+        }));
+    }
+
     if journey.driver_id == journey.passenger_id {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
@@ -54,10 +68,13 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
+    let driver_id = journey.driver_id.unwrap();
+    let passenger_id = journey.passenger_id.unwrap();
+
     let driver_trace = journey
         .gps_trace
         .iter()
-        .find(|trace| trace.user_id == journey.driver_id);
+        .find(|trace| trace.user_id == driver_id);
 
     if driver_trace.is_none() {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
@@ -78,7 +95,7 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
     let passenger_trace = journey
         .gps_trace
         .iter()
-        .find(|trace| trace.user_id == journey.passenger_id);
+        .find(|trace| trace.user_id == passenger_id);
 
     if passenger_trace.is_none() {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
