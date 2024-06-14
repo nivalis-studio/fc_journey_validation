@@ -223,9 +223,9 @@ impl Trace {
     }
 
     pub fn get_confidence(&self, other: &Trace) -> f64 {
-        let frechet = self.frechet_distance(other);
+        let frechet_distance = self.frechet_distance(other);
 
-        normalize_frechet_distance(self, other, frechet)
+        1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
     }
 }
 
