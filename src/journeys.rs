@@ -3,6 +3,8 @@ use geo::{coord, DensifyHaversine, OutlierDetection, RemoveRepeatedPoints, Simpl
 use geo::{LineString, Point};
 use serde::{Deserialize, Serialize};
 
+use crate::points::GpsPoint;
+
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Journey {
@@ -75,28 +77,5 @@ impl From<&GpsTrace> for Trace {
 impl From<GpsTrace> for Trace {
     fn from(value: GpsTrace) -> Self {
         Self::from(&value)
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GpsPoint {
-    pub id: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub accuracy: Option<f64>,
-    pub latitude: f64,
-    pub longitude: f64,
-    pub altitude: Option<f64>,
-    pub altitude_accuracy: Option<f64>,
-    pub heading: Option<f32>,
-    pub speed: Option<f64>,
-    pub timestamp: DateTime<Utc>,
-    pub gps_trace_id: String,
-}
-
-impl From<&GpsPoint> for Point<f64> {
-    fn from(value: &GpsPoint) -> Self {
-        Self::new(value.longitude, value.latitude)
     }
 }

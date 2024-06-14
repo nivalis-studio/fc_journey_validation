@@ -1,21 +1,57 @@
-use crate::journeys::GpsPoint;
-use anyhow::Result;
-use geo::algorithm::Within;
-use geo::Geometry;
-use geojson::GeoJson;
-use std::str::FromStr;
+use std::{f64, str::FromStr};
 
-pub fn _is_point_in_france(point: &GpsPoint) -> bool {
-    point.latitude >= 41.33
-        && point.latitude <= 51.09
-        && point.longitude >= -5.56
-        && point.longitude <= 9.56
+use chrono::{DateTime, Utc};
+use geo::{Geometry, Point, Within};
+use geojson::GeoJson;
+use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GpsPoint {
+    pub id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub accuracy: Option<f64>,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: Option<f64>,
+    pub altitude_accuracy: Option<f64>,
+    pub heading: Option<f32>,
+    pub speed: Option<f64>,
+    pub timestamp: DateTime<Utc>,
+    pub gps_trace_id: String,
 }
 
-pub fn is_point_in_france(point: &GpsPoint) -> Result<bool> {
-    let point = geo::Point::new(point.longitude, point.latitude);
-    let france: Geometry<f64> = GeoJson::from_str(
-        r#"
+impl GpsPoint {
+    pub fn is_in_france(&self) -> bool {
+        let point = geo::Point::new(self.longitude, self.latitude);
+
+        point.is_within(&*FRANCE)
+    }
+
+    pub fn _is_point_in_france(point: &GpsPoint) -> bool {
+        point.latitude >= 41.33
+            && point.latitude <= 51.09
+            && point.longitude >= -5.56
+            && point.longitude <= 9.56
+    }
+}
+
+impl From<&GpsPoint> for Point<f64> {
+    fn from(value: &GpsPoint) -> Self {
+        Self::new(value.longitude, value.latitude)
+    }
+}
+
+impl From<GpsPoint> for Point<f64> {
+    fn from(value: GpsPoint) -> Self {
+        Self::from(&value)
+    }
+}
+
+static FRANCE: Lazy<Geometry<f64>> = Lazy::new(|| {
+    let france_json = r#"
 		{
 			"type": "Feature",
 			"geometry": {
@@ -8185,13 +8221,7 @@ pub fn is_point_in_france(point: &GpsPoint) -> Result<bool> {
 			},
 			"properties": {}
 			}
-	"#,
-    )
-    .unwrap()
-    .try_into()
-    .unwrap();
+	"#;
 
-    let is_in_france = point.is_within(&france);
-
-    Ok(is_in_france)
-}
+    GeoJson::from_str(france_json).unwrap().try_into().unwrap()
+});
