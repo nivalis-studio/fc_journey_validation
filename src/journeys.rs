@@ -67,7 +67,7 @@ impl From<&GpsTrace> for Trace {
             .map(|(&point, _)| coord! { x: point.x(), y: point.y() })
             .collect();
 
-        let line_string = line_string.densify_haversine(0.1);
+        let line_string = line_string.densify_haversine(0.5);
 
         Self(line_string)
     }
