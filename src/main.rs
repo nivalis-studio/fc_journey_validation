@@ -5,7 +5,7 @@ fn main() -> anyhow::Result<()> {
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer)?;
 
-    let journey = Journey::try_from(buffer.as_str())?;
+    let journey = Journey::try_from(buffer)?;
 
     let res = validate_journey(journey)?;
     println!("{:?}", res);

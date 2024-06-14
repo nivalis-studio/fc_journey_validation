@@ -74,6 +74,14 @@ impl Journey {
     }
 }
 
+impl TryFrom<String> for Journey {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: String) -> std::prelude::v1::Result<Self, Self::Error> {
+        Ok(serde_json::from_str(value.as_str())?)
+    }
+}
+
 impl TryFrom<&str> for Journey {
     type Error = JourneyValidationError;
 
