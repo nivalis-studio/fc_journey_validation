@@ -2,8 +2,6 @@ use anyhow::Result;
 use geo::LineString;
 use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
 
 pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
     let feature_collection = FeatureCollection {
@@ -41,9 +39,6 @@ pub fn traces_to_geojson(t1: &LineString, t2: &LineString) -> Result<()> {
     let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
 
     open::that(url)?;
-
-    let mut file = File::create("traces.geojson")?;
-    file.write_all(feature_collection.as_bytes())?;
 
     Ok(())
 }

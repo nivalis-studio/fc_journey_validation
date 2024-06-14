@@ -1,20 +1,14 @@
-use std::path::PathBuf;
-
-use clap::Parser;
-use gps_trajectory_validation::{cli, journeys::Journey, validate_journey};
+use gps_trajectory_validation::{journeys::Journey, validate_journey};
+use std::io::{self, Read};
 
 fn main() -> anyhow::Result<()> {
-    let args = cli::Cli::parse();
+    let mut buffer = String::new();
+    io::stdin().read_to_string(&mut buffer)?;
 
-    let journey = Journey::try_from(PathBuf::from(args.file_path))?;
+    let journey = Journey::try_from(buffer.as_str())?;
 
     let res = validate_journey(journey)?;
     println!("{:?}", res);
-
-    // validate_traces(
-    //     journey.gps_trace.get(0).unwrap().clone(),
-    //     journey.gps_trace.get(1).unwrap().clone(),
-    // )?;
 
     Ok(())
 }
