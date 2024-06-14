@@ -1,6 +1,6 @@
+use crate::journeys::Result;
 use crate::traces::Trace;
 use crate::{journeys::Journey, validate_traces};
-use anyhow::Result;
 use geo::{Closest, Coord, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
 
@@ -24,50 +24,8 @@ pub enum ValidateReturn<T> {
     Success(ValidateReturnSuccess<T>),
 }
 
-pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> {
-    if journey.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Journey not found",
-        }));
-    }
-
-    let journey = journey.unwrap();
-
-    if journey.start_time.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Missing startTime",
-        }));
-    }
-
-    if journey.end_time.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Missing endTime",
-        }));
-    }
-
-    if journey.driver_id.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Driver not found",
-        }));
-    }
-
-    if journey.passenger_id.is_none() {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Passenger not found",
-        }));
-    }
-
-    if journey.driver_id == journey.passenger_id {
-        return Ok(ValidateReturn::Error(ValidateReturnError::Error {
-            success: false,
-            reason: "Driver cannot be passenger",
-        }));
-    }
+pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
+    journey.validate()?;
 
     let driver_id = journey.driver_id.unwrap();
     let passenger_id = journey.passenger_id.unwrap();
