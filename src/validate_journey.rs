@@ -1,6 +1,6 @@
 use crate::{is_point_in_france, journeys::Journey, journeys::Trace, validate_traces};
 use anyhow::Result;
-use geo::{Closest, Point};
+use geo::{Closest, HaversineLength, LineString, Point};
 use geo::{HaversineClosestPoint, HaversineDistance};
 
 const MAX_DELTA_IN_MILLISECONDS: u32 = 90_000;
@@ -163,21 +163,17 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    let validate_traces_res = validate_traces(driver_trace.clone(), passenger_trace.clone());
+    let t1: Trace = driver_trace.into();
+    let t2: Trace = passenger_trace.into();
 
+    let validate_traces_res = validate_traces(t1.clone(), t2.clone());
     println!("Frechet distance: {:?}", validate_traces_res.unwrap());
-
-    println!("driver_trace.length: {:?}", driver_trace.points.len());
 
     let mut distance = 0.0;
 
     for point1 in driver_trace.points.iter() {
         let point1: Point<f64> = point1.into();
-        let point2: Closest<f64> = Trace::from(passenger_trace)
-            .as_ref()
-            .haversine_closest_point(&point1);
-
-        println!("point2: {:?}", point2);
+        let point2: Closest<f64> = t2.as_ref().haversine_closest_point(&point1);
 
         let point2: Point<f64> = match point2 {
             Closest::SinglePoint(point) => point,
@@ -191,6 +187,8 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
             distance += dist;
         }
     }
+
+    let time = std::time::Instant::now();
 
     if distance < MIN_DISTANCE_IN_METERS as f64 {
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
@@ -208,8 +206,23 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         }));
     }
 
-    Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
+    let lines: Vec<LineString> = [t1, t2]
+        .iter()
+        .map(|trace| {
+            let line_string = trace.clone().simplified();
+            let length = line_string.as_ref().haversine_length();
+            println!("Line length: {} meters", length);
+
+            line_string.as_ref().clone()
+        })
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+
+    crate::traces_to_geojson(lines.get(0).unwrap(), lines.get(1).unwrap()).unwrap();
+
+    return Ok(ValidateReturn::Success(ValidateReturnSuccess::Success {
         success: true,
         data: (),
-    }))
+    }));
 }
