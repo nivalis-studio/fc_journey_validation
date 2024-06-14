@@ -9,11 +9,7 @@ const MAX_DISTANCE_IN_METERS: u32 = 80_000;
 
 #[derive(Debug)]
 pub enum ValidateReturnError {
-    Error {
-        success: bool,
-        reason: &'static str,
-        readable_message: Option<&'static str>,
-    },
+    Error { success: bool, reason: &'static str },
 }
 
 #[derive(Debug)]
@@ -32,7 +28,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Journey not found",
-            readable_message: None,
         }));
     }
 
@@ -42,7 +37,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Missing startTime",
-            readable_message: None,
         }));
     }
 
@@ -50,7 +44,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Missing endTime",
-            readable_message: None,
         }));
     }
 
@@ -58,7 +51,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Driver cannot be passenger",
-            readable_message: None,
         }));
     }
 
@@ -71,7 +63,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Driver trace not found",
-            readable_message: None,
         }));
     }
 
@@ -81,7 +72,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Driver trace is empty",
-            readable_message: None,
         }));
     }
 
@@ -94,7 +84,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Passenger trace not found",
-            readable_message: None,
         }));
     }
 
@@ -104,7 +93,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Passenger trace is empty",
-            readable_message: None,
         }));
     }
 
@@ -122,7 +110,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Start points timestamps are too far apart",
-            readable_message: None,
         }));
     }
 
@@ -146,7 +133,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "End points timestamps are too far apart",
-            readable_message: None,
         }));
     }
 
@@ -159,7 +145,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "Not in France",
-            readable_message: None,
         }));
     }
 
@@ -200,7 +185,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "distance too short",
-            readable_message: None,
         }));
     }
 
@@ -208,7 +192,6 @@ pub fn validate_journey(journey: Option<Journey>) -> Result<ValidateReturn<()>> 
         return Ok(ValidateReturn::Error(ValidateReturnError::Error {
             success: false,
             reason: "distance too long",
-            readable_message: None,
         }));
     }
 
