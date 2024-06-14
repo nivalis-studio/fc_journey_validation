@@ -33,14 +33,7 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn validate(self) -> Result<TracesPair> {
-        if self.start_time.is_none() {
-            return Err(JourneyValidationError::MissingStartTime);
-        }
-        if self.end_time.is_none() {
-            return Err(JourneyValidationError::MissingEndTime);
-        }
-
+    pub fn get_traces(&self) -> Result<TracesPair> {
         let driver_id = self
             .driver_id
             .as_ref()
@@ -74,19 +67,28 @@ impl Journey {
     }
 }
 
-impl TryFrom<String> for Journey {
-    type Error = JourneyValidationError;
-
-    fn try_from(value: String) -> std::prelude::v1::Result<Self, Self::Error> {
-        Ok(serde_json::from_str(value.as_str())?)
-    }
-}
-
 impl TryFrom<&str> for Journey {
     type Error = JourneyValidationError;
 
     fn try_from(value: &str) -> std::prelude::v1::Result<Self, Self::Error> {
-        Ok(serde_json::from_str(value)?)
+        let journey: Journey = serde_json::from_str(value)?;
+
+        if journey.start_time.is_none() {
+            return Err(JourneyValidationError::MissingStartTime);
+        }
+        if journey.end_time.is_none() {
+            return Err(JourneyValidationError::MissingEndTime);
+        }
+
+        Ok(journey)
+    }
+}
+
+impl TryFrom<String> for Journey {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: String) -> std::prelude::v1::Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }
 

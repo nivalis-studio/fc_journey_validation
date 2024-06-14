@@ -18,7 +18,7 @@ pub enum ValidateReturn<T> {
 }
 
 pub fn validate_journey(journey: Journey) -> Result<ValidateReturn<()>> {
-    let traces = journey.validate()?;
+    let traces = journey.get_traces()?;
 
     let traces = traces.validate()?.simplified();
 
