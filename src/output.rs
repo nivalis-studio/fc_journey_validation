@@ -46,7 +46,7 @@ impl From<JourneyValidationError> for Output {
 #[derive(Serialize)]
 pub struct TraceOuput {
     pub id: String,
-    pub points: Vec<GpsPoint>,
+    pub points: Vec<String>,
 }
 
 impl From<&GpsTrace> for TraceOuput {
@@ -63,7 +63,7 @@ impl From<&GpsTrace> for TraceOuput {
                     .iter()
                     .any(|c| c.x == gp.longitude && c.y == gp.latitude)
             })
-            .cloned()
+            .map(|gp| gp.id.to_owned())
             .collect();
 
         Self {
