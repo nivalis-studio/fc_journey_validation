@@ -238,6 +238,10 @@ impl GpsTracesPair {
 pub struct Trace(LineString);
 
 impl Trace {
+    pub fn inner(self) -> LineString {
+        self.0
+    }
+
     pub fn simplified(&self) -> Self {
         let line_string = self.remove_repeated_points().simplify(&0.00001);
 
