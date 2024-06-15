@@ -1,8 +1,13 @@
 use chrono::{DateTime, Utc};
+use geo::Coord;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{error::JourneyValidationError, points::GpsPoint};
+use crate::{
+    error::JourneyValidationError,
+    points::GpsPoint,
+    traces::{GpsTrace, Trace},
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Default)]
@@ -49,4 +54,28 @@ pub struct PointOutput {
     pub timestamp: DateTime<Utc>,
     pub latitude: f64,
     pub longitude: f64,
+}
+
+impl From<GpsTrace> for TraceOuput {
+    fn from(value: GpsTrace) -> Self {
+        let line_string = Trace::from(&value).simplified().inner();
+
+        let coords: Vec<Coord> = line_string.into_iter().collect();
+
+        let points = value
+            .points
+            .iter()
+            .filter(|gp| {
+                coords
+                    .iter()
+                    .any(|c| c.x == gp.longitude && c.y == gp.latitude)
+            })
+            .cloned()
+            .collect();
+
+        Self {
+            id: value.id,
+            points,
+        }
+    }
 }
