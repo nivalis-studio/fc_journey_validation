@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -12,8 +13,8 @@ pub struct Output {
     pub distance_driver: Option<f64>,
     pub distance_passenger: Option<f64>,
     pub common_distance: Option<f64>,
-    pub common_start_point: Option<GpsPoint>,
-    pub common_end_point: Option<GpsPoint>,
+    pub common_start_point: Option<PointOutput>,
+    pub common_end_point: Option<PointOutput>,
     pub average_confidence: Option<f64>,
     pub traces: Option<(TraceOuput, TraceOuput)>,
 }
@@ -41,4 +42,11 @@ impl From<JourneyValidationError> for Output {
 pub struct TraceOuput {
     pub id: String,
     pub points: Vec<GpsPoint>,
+}
+
+#[derive(Serialize)]
+pub struct PointOutput {
+    pub timestamp: DateTime<Utc>,
+    pub latitude: f64,
+    pub longitude: f64,
 }
