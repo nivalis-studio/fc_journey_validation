@@ -62,10 +62,10 @@ pub struct GpsTracesPair(pub GpsTrace, pub GpsTrace);
 
 impl GpsTracesPair {
     pub fn validate(self) -> Result<Self> {
-        let driver_trace = &self.0;
-        let passenger_trace = &self.1;
-        let (driver_start, driver_end) = driver_trace.get_edges()?;
-        let (passenger_start, passenger_end) = passenger_trace.get_edges()?;
+        let driver_gpstrace = &self.0;
+        let passenger_gpstrace = &self.1;
+        let (driver_start, driver_end) = driver_gpstrace.get_edges()?;
+        let (passenger_start, passenger_end) = passenger_gpstrace.get_edges()?;
 
         let validate_timestamps_delta = |points: (&GpsPoint, &GpsPoint), name: &str| {
             let first = points.0;
@@ -87,7 +87,7 @@ impl GpsTracesPair {
         validate_timestamps_delta((driver_start, passenger_start), "start")?;
         validate_timestamps_delta((driver_end, passenger_end), "end")?;
 
-        if !driver_trace.is_in_france()? || !passenger_trace.is_in_france()? {
+        if !driver_gpstrace.is_in_france()? || !passenger_gpstrace.is_in_france()? {
             return Err(JourneyValidationError::NotInFrance);
         }
 
@@ -95,14 +95,15 @@ impl GpsTracesPair {
     }
 
     pub fn get_confidence(&self) -> f64 {
-        let (driver, passenger) = self.to_traces();
+        let (driver_trace, passenger_trace) = self.to_traces();
 
-        let frechet_distance = driver.get_similarity(&passenger);
+        let frechet_distance = driver_trace.get_similarity(&passenger_trace);
 
         1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
     }
 
     pub fn get_result(&self) -> Result<Output> {
+        let (driver_gpstrace, passenger_gpstrace) = (&self.0, &self.1);
         let (driver_trace, passenger_trace) = self.to_traces();
 
         let confidence = self.get_confidence();
@@ -110,14 +111,15 @@ impl GpsTracesPair {
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
         let mut common_points: VecDeque<GpsPoint> = VecDeque::new();
 
-        let (points, other_trace) = match self.0.points.len() < self.1.points.len() {
-            true => (&self.0.points, &passenger_trace),
-            false => (&self.1.points, &driver_trace),
-        };
+        let (shortest_gt, other_t) =
+            match driver_gpstrace.points.len() < passenger_gpstrace.points.len() {
+                true => (driver_gpstrace, &passenger_trace),
+                false => (passenger_gpstrace, &driver_trace),
+            };
 
-        for driver_point in points.iter() {
+        for driver_point in shortest_gt.points.iter() {
             let point: Point<f64> = driver_point.into();
-            let other_point: Closest<f64> = other_trace.haversine_closest_point(&point);
+            let other_point: Closest<f64> = other_t.haversine_closest_point(&point);
 
             let other_point: Point<f64> = match other_point {
                 Closest::SinglePoint(point) => point,
@@ -169,15 +171,15 @@ impl GpsTracesPair {
     }
 
     pub fn to_traces(&self) -> (Trace, Trace) {
-        let GpsTracesPair(driver, passenger) = self;
+        let GpsTracesPair(driver_gpstrace, passenger_gpstrace) = self;
 
-        (driver.into(), passenger.into())
+        (driver_gpstrace.into(), passenger_gpstrace.into())
     }
 
     pub fn to_simplified_traces(&self) -> (Trace, Trace) {
-        let (driver, passenger) = self.to_traces();
+        let (driver_trace, passenger_trace) = self.to_traces();
 
-        (driver.simplified(), passenger.simplified())
+        (driver_trace.simplified(), passenger_trace.simplified())
     }
 }
 
