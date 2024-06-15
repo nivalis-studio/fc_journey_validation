@@ -49,9 +49,9 @@ pub struct TraceOuput {
     pub points: Vec<GpsPoint>,
 }
 
-impl From<GpsTrace> for TraceOuput {
-    fn from(value: GpsTrace) -> Self {
-        let line_string = Trace::from(&value).simplified().inner();
+impl From<&GpsTrace> for TraceOuput {
+    fn from(value: &GpsTrace) -> Self {
+        let line_string = Trace::from(value).simplified().inner();
 
         let coords: Vec<Coord> = line_string.into_iter().collect();
 
@@ -67,7 +67,7 @@ impl From<GpsTrace> for TraceOuput {
             .collect();
 
         Self {
-            id: value.id,
+            id: value.id.to_owned(),
             points,
         }
     }

@@ -12,7 +12,7 @@ use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use serde::{Deserialize, Serialize};
 
 use crate::error::JourneyValidationError;
-use crate::output::{Output, PointOutput};
+use crate::output::{Output, PointOutput, TraceOuput};
 use crate::points::GpsPoint;
 use crate::Result;
 
@@ -148,6 +148,8 @@ impl GpsTracesPair {
             return Err(JourneyValidationError::InvalidDistance("long".into()));
         }
 
+        let traces: Option<(TraceOuput, TraceOuput)> = Some(((&self.0).into(), (&self.1).into()));
+
         let output = Output {
             success: true,
             average_confidence: Some(confidence),
@@ -156,6 +158,7 @@ impl GpsTracesPair {
             distance_passenger: Some(passenger_trace.haversine_length()),
             common_start_point,
             common_end_point,
+            traces,
             ..Default::default()
         };
 
