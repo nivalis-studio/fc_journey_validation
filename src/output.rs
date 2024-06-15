@@ -75,6 +75,7 @@ impl From<&GpsTrace> for TraceOuput {
 
 #[derive(Serialize)]
 pub struct PointOutput {
+    pub id: String,
     pub timestamp: DateTime<Utc>,
     pub latitude: f64,
     pub longitude: f64,
@@ -83,6 +84,7 @@ pub struct PointOutput {
 impl From<GpsPoint> for PointOutput {
     fn from(value: GpsPoint) -> Self {
         Self {
+            id: value.id,
             timestamp: value.timestamp,
             latitude: value.latitude,
             longitude: value.longitude,
