@@ -19,13 +19,8 @@ fn main() {
     let output_json = serde_json::to_string(&output).unwrap();
 
     let mut stdout = io::stdout().lock();
-    let mut stderr = io::stderr().lock();
 
-    let writer: &mut dyn Write = if output.success {
-        &mut stdout
-    } else {
-        &mut stderr
-    };
+    let writer: &mut dyn Write = &mut stdout;
 
     write!(writer, "{}", output_json).unwrap();
 }
