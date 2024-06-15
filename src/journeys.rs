@@ -44,9 +44,9 @@ impl Journey {
         Journey::try_from(buffer)
     }
     pub fn validate(self) -> Result<Output> {
-        let traces = self.get_traces()?.validate()?;
+        let gpstraces = self.get_traces()?.validate()?;
 
-        traces.get_result()
+        gpstraces.get_result()
     }
 
     pub fn get_traces(&self) -> Result<GpsTracesPair> {
