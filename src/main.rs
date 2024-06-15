@@ -11,8 +11,10 @@ fn main() {
     };
 
     let output = match journey_result {
-        // TODO: handle error conversion to output
-        Ok(journey) => journey.validate().unwrap(),
+        Ok(journey) => match journey.validate() {
+            Ok(output) => output,
+            Err(err) => Output::from(err),
+        },
         Err(err) => Output::from(err),
     };
 
