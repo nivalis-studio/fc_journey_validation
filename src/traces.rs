@@ -110,18 +110,22 @@ impl GpsTracesPair {
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
         let mut common_points: VecDeque<GpsPoint> = VecDeque::new();
 
-        // TODO: take shortest trace rather than driver trace
-        for driver_point in self.0.points.iter() {
-            let point: Point<f64> = driver_point.into();
-            let passenger_point: Closest<f64> = passenger_trace.haversine_closest_point(&point);
+        let (points, other_trace) = match self.0.points.len() < self.1.points.len() {
+            true => (&self.0.points, &passenger_trace),
+            false => (&self.1.points, &driver_trace),
+        };
 
-            let passenger_point: Point<f64> = match passenger_point {
+        for driver_point in points.iter() {
+            let point: Point<f64> = driver_point.into();
+            let other_point: Closest<f64> = other_trace.haversine_closest_point(&point);
+
+            let other_point: Point<f64> = match other_point {
                 Closest::SinglePoint(point) => point,
                 Closest::Intersection(intersection) => intersection,
                 Closest::Indeterminate => continue,
             };
 
-            let dist = point.haversine_distance(&passenger_point);
+            let dist = point.haversine_distance(&other_point);
 
             if dist < 1000.0 {
                 common_points.push_back(driver_point.clone());
