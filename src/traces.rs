@@ -32,6 +32,12 @@ pub struct GpsTrace {
 }
 
 impl GpsTrace {
+    pub fn remove_repeated_points(self) -> Self {
+        let mut points = self.points;
+        points.dedup_by(|a, b| a.longitude == b.longitude && a.latitude == b.latitude);
+
+        Self { points, ..self }
+    }
     pub fn validate(self) -> Result<Self> {
         if self.points.len() < 2 {
             return Err(JourneyValidationError::EmptyTrace(self.id.to_owned()));

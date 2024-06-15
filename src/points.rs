@@ -25,9 +25,7 @@ pub struct GpsPoint {
 
 impl GpsPoint {
     pub fn is_in_france(&self) -> bool {
-        let point = geo::Point::new(self.longitude, self.latitude);
-
-        point.is_within(&*FRANCE)
+        geo::Point::new(self.longitude, self.latitude).is_within(&*FRANCE)
     }
 }
 
