@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ops::Deref;
 
 use anyhow::Context;
@@ -12,7 +12,7 @@ use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use serde::{Deserialize, Serialize};
 
 use crate::error::JourneyValidationError;
-use crate::output::Output;
+use crate::output::{Output, PointOutput};
 use crate::points::GpsPoint;
 use crate::Result;
 
@@ -110,11 +110,11 @@ impl GpsTracesPair {
         let confidence = self.get_confidence();
 
         let mut common_coords: Vec<Coord<f64>> = Vec::new();
+        let mut common_points: VecDeque<GpsPoint> = VecDeque::new();
 
         for driver_point in self.0.points.iter() {
-            let driver_point: Point<f64> = driver_point.into();
-            let passenger_point: Closest<f64> =
-                passenger_trace.haversine_closest_point(&driver_point);
+            let point: Point<f64> = driver_point.into();
+            let passenger_point: Closest<f64> = passenger_trace.haversine_closest_point(&point);
 
             let passenger_point: Point<f64> = match passenger_point {
                 Closest::SinglePoint(point) => point,
@@ -122,21 +122,21 @@ impl GpsTracesPair {
                 Closest::Indeterminate => continue,
             };
 
-            let dist = driver_point.haversine_distance(&passenger_point);
+            let dist = point.haversine_distance(&passenger_point);
 
             if dist < 1000.0 {
+                common_points.push_back(driver_point.clone());
                 common_coords.push(Coord {
-                    x: driver_point.x(),
-                    y: driver_point.y(),
+                    x: point.x(),
+                    y: point.y(),
                 })
             }
         }
 
         let common_line_string: LineString = LineString::new(common_coords);
 
-        // TODO: get GpsPoint from those Coords
-        let _common_start_point = common_line_string.0.first();
-        let _common_end_point = common_line_string.0.last();
+        let common_start_point = common_points.pop_front().map(PointOutput::from);
+        let common_end_point = common_points.pop_front().map(PointOutput::from);
 
         let distance = common_line_string.haversine_length();
 
@@ -148,13 +148,14 @@ impl GpsTracesPair {
             return Err(JourneyValidationError::InvalidDistance("long".into()));
         }
 
-        // TODO: get Simplified GpsPoint (not just simplified Trace)
         let output = Output {
             success: true,
             average_confidence: Some(confidence),
             common_distance: Some(distance),
             distance_driver: Some(driver_trace.haversine_length()),
             distance_passenger: Some(passenger_trace.haversine_length()),
+            common_start_point,
+            common_end_point,
             ..Default::default()
         };
 
