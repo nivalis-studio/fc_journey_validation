@@ -49,13 +49,6 @@ pub struct TraceOuput {
     pub points: Vec<GpsPoint>,
 }
 
-#[derive(Serialize)]
-pub struct PointOutput {
-    pub timestamp: DateTime<Utc>,
-    pub latitude: f64,
-    pub longitude: f64,
-}
-
 impl From<GpsTrace> for TraceOuput {
     fn from(value: GpsTrace) -> Self {
         let line_string = Trace::from(&value).simplified().inner();
@@ -76,6 +69,23 @@ impl From<GpsTrace> for TraceOuput {
         Self {
             id: value.id,
             points,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct PointOutput {
+    pub timestamp: DateTime<Utc>,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+impl From<GpsPoint> for PointOutput {
+    fn from(value: GpsPoint) -> Self {
+        Self {
+            timestamp: value.timestamp,
+            latitude: value.latitude,
+            longitude: value.longitude,
         }
     }
 }
