@@ -1,5 +1,12 @@
+use std::{
+    io::{self, Read},
+    path::PathBuf,
+};
+
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
+
+use crate::{error::JourneyValidationError, Result};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -36,4 +43,33 @@ pub struct PointInput {
     pub speed: Option<f64>,
     pub timestamp: DateTime<Utc>,
     pub gps_trace_id: String,
+}
+
+impl JourneyInput {
+    pub fn from_stdin() -> Result<Self> {
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer)?;
+
+        JourneyInput::try_from(buffer.as_str())
+    }
+}
+
+impl TryFrom<&str> for JourneyInput {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: &str) -> std::prelude::v1::Result<Self, Self::Error> {
+        let journey: JourneyInput = serde_json::from_str(value)?;
+
+        Ok(journey)
+    }
+}
+
+impl TryFrom<PathBuf> for JourneyInput {
+    type Error = JourneyValidationError;
+
+    fn try_from(value: PathBuf) -> std::prelude::v1::Result<Self, Self::Error> {
+        let json_string = std::fs::read_to_string(value)?;
+
+        Self::try_from(json_string.as_ref())
+    }
 }

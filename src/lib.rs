@@ -1,7 +1,9 @@
+pub mod cli;
 pub mod error;
 pub mod france;
 pub mod input;
 pub mod journey;
+pub mod output;
 pub mod point;
 pub mod trace;
 

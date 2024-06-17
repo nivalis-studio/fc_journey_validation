@@ -2,13 +2,14 @@ use chrono::{DateTime, Utc};
 use geo::{Coord, Point, Within};
 use std::f64;
 
-use crate::{france::FRANCE, input::PointInput};
+use crate::{france::FRANCE, input::PointInput, output::PointOutput};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PointWithId {
     pub id: String,
     pub x: f64,
     pub y: f64,
+    pub trace_id: String,
     pub timestamp: DateTime<Utc>,
 }
 
@@ -28,6 +29,7 @@ impl PointWithId {
 impl From<&PointInput> for PointWithId {
     fn from(value: &PointInput) -> Self {
         Self {
+            trace_id: value.gps_trace_id.to_string(),
             timestamp: value.timestamp,
             id: value.id.to_string(),
             x: value.longitude,
@@ -47,6 +49,17 @@ impl From<&PointWithId> for Coord<f64> {
         Self {
             x: value.x,
             y: value.y,
+        }
+    }
+}
+
+impl From<&PointWithId> for PointOutput {
+    fn from(value: &PointWithId) -> Self {
+        Self {
+            id: value.id.to_owned(),
+            timestamp: value.timestamp.to_owned(),
+            longitude: value.x,
+            latitude: value.y,
         }
     }
 }

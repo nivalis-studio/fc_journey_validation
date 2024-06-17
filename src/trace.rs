@@ -1,12 +1,16 @@
-use std::{collections::HashMap, f64, marker::PhantomData};
+use std::{collections::HashMap, f64, isize, marker::PhantomData, num::Wrapping};
 
 use chrono::{DateTime, Utc};
 use geo::{
-    Closest, FrechetDistance, HaversineClosestPoint, HaversineDistance, HaversineLength,
-    LineString, Point, RemoveRepeatedPoints, Simplify,
+    Coord, FrechetDistance, HaversineDistance, HaversineLength, LineString, Point,
+    RemoveRepeatedPoints, Simplify,
 };
 
-use crate::{input::TraceInput, point::PointWithId};
+use crate::{
+    input::TraceInput,
+    output::{PointOutput, TraceOutput},
+    point::PointWithId,
+};
 
 const MAX_POINTS_DELTA_IN_METERS: u16 = 1000;
 
@@ -15,6 +19,7 @@ pub struct NotSimplified;
 
 #[derive(Debug)]
 pub struct Trace<T = NotSimplified> {
+    pub id: String,
     pub points: Vec<PointWithId>,
     status: PhantomData<T>,
 }
@@ -38,6 +43,7 @@ impl Trace {
                 coords
                     .get(&(coord.x.to_bits(), coord.y.to_bits()))
                     .map(|(id, timestamp)| PointWithId {
+                        trace_id: self.id.to_string(),
                         id: id.to_string(),
                         timestamp: timestamp.to_owned(),
                         x: coord.x,
@@ -47,6 +53,7 @@ impl Trace {
             .collect();
 
         Trace {
+            id: self.id.to_string(),
             points,
             status: PhantomData,
         }
@@ -64,42 +71,110 @@ impl Trace {
         linestring.haversine_length()
     }
 
-    pub fn get_distance_with(&self, other: &Trace) -> f64 {
+    pub fn frechet_distance_with(&self, other: &Trace) -> f64 {
         LineString::from(self).frechet_distance(&other.into())
     }
 
-    pub fn get_common_linestring_with(&self, other: &Trace) -> LineString {
-        let (shortest, longest) = if self.points.len() < other.points.len() {
-            (self, other)
-        } else {
-            (other, self)
-        };
+    pub fn common_trace_with(&self, other: &Trace) -> CommonTrace {
+        let mut all_points: Vec<&PointWithId> =
+            self.points.iter().chain(other.points.iter()).collect();
 
-        let longest_linestring = LineString::from(longest);
-        let shortest_linestring = LineString::from(shortest);
+        all_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
 
-        let common_linestring: LineString = shortest_linestring
-            .into_iter()
-            .filter(|coord| {
-                let point: Point<f64> = Point::new(coord.x, coord.y);
+        let tx = all_points.last().unwrap();
+        let trace_without_tx = if tx.trace_id == self.id { self } else { other };
+        let (ty_idx, ty) = all_points
+            .iter()
+            .enumerate()
+            .rfind(|(_, p)| {
+                if p.trace_id == tx.trace_id {
+                    return false;
+                }
 
-                let closest_point: Closest<f64> =
-                    longest_linestring.haversine_closest_point(&point);
+                let point: Point<f64> = Point::from(**p);
 
-                let other_point: Point<f64> = match closest_point {
-                    Closest::SinglePoint(point) => point,
-                    Closest::Intersection(intersection) => intersection,
-                    Closest::Indeterminate => return false,
-                };
-
-                let dist = point.haversine_distance(&other_point);
-
-                dist < MAX_POINTS_DELTA_IN_METERS as f64
+                trace_without_tx.points.iter().rev().any(|p| {
+                    Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS as f64
+                })
             })
-            .collect();
+            .unwrap();
 
-        common_linestring
+        let all_points = &all_points[0..=ty_idx];
+
+        let mut homogenous_segments: Vec<Vec<&PointWithId>> = Vec::new();
+        let mut mixed_segments: Vec<Vec<&PointWithId>> = Vec::new();
+
+        for (idx, curr) in all_points.iter().enumerate() {
+            let prev = if idx > 0 {
+                all_points.get(idx - 1)
+            } else {
+                None
+            };
+            let prev_prev = if idx > 1 {
+                all_points.get(idx - 2)
+            } else {
+                None
+            };
+            let next = all_points.get(idx + 1);
+
+            if let Some(prev) = prev {
+                if curr.trace_id == prev.trace_id {
+                    homogenous_segments.last_mut().unwrap().push(curr);
+                    continue;
+                }
+            }
+
+            if let Some(next) = next {
+                if curr.trace_id == next.trace_id {
+                    homogenous_segments.push(vec![curr]);
+                    continue;
+                }
+            }
+
+            if let Some(prev) = prev {
+                if let Some(prev_prev) = prev_prev {
+                    if prev_prev.trace_id == prev.trace_id {
+                        mixed_segments.push(vec![curr]);
+                        continue;
+                    }
+                }
+            }
+
+            if let Some(segment) = mixed_segments.last_mut() {
+                segment.push(curr);
+                continue;
+            }
+
+            mixed_segments.push(vec![curr]);
+        }
+
+        let homogenous_distance = get_segments_length(homogenous_segments);
+        // FIXME: calculate mixed distance more precisely
+        let mixed_distance = get_segments_length(mixed_segments);
+        let common_distance = homogenous_distance + mixed_distance;
+
+        CommonTrace {
+            common_distance,
+            common_start_point: PointOutput::from(all_points.first().unwrap().to_owned()),
+            common_end_point: PointOutput::from(ty.to_owned()),
+        }
     }
+}
+
+pub struct CommonTrace {
+    pub common_distance: f64,
+    pub common_start_point: PointOutput,
+    pub common_end_point: PointOutput,
+}
+
+fn get_segments_length(segments: Vec<Vec<&PointWithId>>) -> f64 {
+    segments
+        .iter()
+        .map(|v| {
+            LineString::from(v.iter().map(|p| Coord::from(*p)).collect::<Vec<Coord>>())
+                .haversine_length()
+        })
+        .sum()
 }
 
 impl Trace<NotSimplified> {
@@ -109,6 +184,15 @@ impl Trace<NotSimplified> {
             .simplify(epsilon);
 
         self.from_linestring(linestring)
+    }
+}
+
+impl From<Trace<Simplified>> for TraceOutput {
+    fn from(value: Trace<Simplified>) -> Self {
+        Self {
+            id: value.id.to_owned(),
+            points: value.points.iter().map(|p| p.id.to_owned()).collect(),
+        }
     }
 }
 
@@ -129,6 +213,7 @@ impl From<&TraceInput> for Trace {
         let points = value.points.iter().map(PointWithId::from).collect();
 
         Self {
+            id: value.id.to_string(),
             points,
             status: PhantomData,
         }

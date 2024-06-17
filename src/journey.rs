@@ -1,4 +1,10 @@
-use crate::{error::JourneyValidationError, input::JourneyInput, trace::Trace, Result};
+use crate::{
+    error::JourneyValidationError,
+    input::JourneyInput,
+    output::{Output, TracesOutput},
+    trace::{CommonTrace, Trace},
+    Result,
+};
 
 const MAX_DELTA_IN_MILLISECONDS: i64 = 90_000;
 
@@ -8,14 +14,38 @@ pub struct Journey {
 }
 
 impl Journey {
-    pub fn validate(&self) -> Result<()> {
-        self.validate_edges()?;
+    pub fn validate(&self) -> Output {
+        match self.validate_edges() {
+            Ok(_) => {}
+            Err(err) => return Output::from(err),
+        };
 
-        Ok(())
+        let CommonTrace {
+            common_distance,
+            common_start_point,
+            common_end_point,
+        } = self.driver_trace.common_trace_with(&self.passenger_trace);
+
+        let driver_trace = self.driver_trace.simplified(&0.00001).into();
+        let passenger_trace = self.driver_trace.simplified(&0.00001).into();
+        let average_confidence = self.confidence();
+
+        Output::Success(crate::output::OutputSuccess {
+            average_confidence,
+            traces: TracesOutput {
+                passenger_trace,
+                driver_trace,
+            },
+            common_distance,
+            common_start_point,
+            common_end_point,
+        })
     }
 
     pub fn confidence(&self) -> f64 {
-        let frechet_distance = self.driver_trace.get_distance_with(&self.passenger_trace);
+        let frechet_distance = self
+            .driver_trace
+            .frechet_distance_with(&self.passenger_trace);
 
         1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
     }
