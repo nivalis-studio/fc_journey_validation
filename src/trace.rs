@@ -1,3 +1,4 @@
+use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
@@ -148,15 +149,81 @@ impl Trace {
             mixed_segments.push(vec![curr]);
         }
 
-        let homogenous_distance = get_segments_length(homogenous_segments);
+        let homogenous_distance = get_segments_length(&homogenous_segments);
         // FIXME: calculate mixed distance more precisely
-        let mixed_distance = get_segments_length(mixed_segments);
+        let mixed_distance = get_segments_length(&mixed_segments);
         let common_distance = homogenous_distance + mixed_distance;
+
+        let trace: Trace<Simplified> = Trace {
+            id: "test".into(),
+            points: homogenous_segments
+                .iter()
+                .flatten()
+                .cloned()
+                .cloned()
+                .collect(),
+            status: PhantomData,
+        }
+        .simplified(&0.00001);
+        trace.visualize();
+
+        let trace: Trace<Simplified> = Trace {
+            id: "test".into(),
+            points: mixed_segments.iter().flatten().cloned().cloned().collect(),
+            status: PhantomData,
+        }
+        .simplified(&0.00001);
+        trace.visualize();
 
         CommonTrace {
             common_distance,
             common_start_point: PointOutput::from(all_points.first().unwrap().to_owned()),
             common_end_point: PointOutput::from(ty.to_owned()),
+        }
+    }
+}
+
+impl<T> Trace<T> {
+    pub fn visualize(&self) {
+        let geojson = self.to_geojson().to_string();
+
+        let uri_data = urlencoding::encode(&geojson);
+        let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
+
+        open::that(url).unwrap();
+    }
+
+    pub fn to_geojson(&self) -> FeatureCollection {
+        let create_properties = |color: &str, width: &str, opacity: &str| -> Option<JsonObject> {
+            let mut properties = JsonObject::new();
+            let properties_: HashMap<String, JsonValue> = [
+                ("stroke".to_string(), JsonValue::from(color)),
+                ("stroke-width".to_string(), JsonValue::from(width)),
+                ("stroke-opacity".to_string(), JsonValue::from(opacity)),
+            ]
+            .iter()
+            .cloned()
+            .collect();
+
+            properties.extend(properties_);
+
+            Some(properties)
+        };
+
+        FeatureCollection {
+            bbox: None,
+            features: vec![Feature {
+                bbox: None,
+                geometry: Some(Geometry {
+                    value: geojson::Value::from(&LineString::from(self)),
+                    bbox: None,
+                    foreign_members: None,
+                }),
+                id: None,
+                properties: create_properties("#00a3d7", "2", "1"),
+                foreign_members: None,
+            }],
+            foreign_members: None,
         }
     }
 }
@@ -167,7 +234,7 @@ pub struct CommonTrace {
     pub common_end_point: PointOutput,
 }
 
-fn get_segments_length(segments: Vec<Vec<&PointWithId>>) -> f64 {
+fn get_segments_length(segments: &[Vec<&PointWithId>]) -> f64 {
     segments
         .iter()
         .map(|v| {
