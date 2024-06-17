@@ -1,5 +1,6 @@
 use std::{collections::HashMap, f64, marker::PhantomData};
 
+use chrono::{DateTime, Utc};
 use geo::{
     Closest, HaversineClosestPoint, HaversineDistance, HaversineLength, LineString, Point,
     RemoveRepeatedPoints, Simplify,
@@ -20,10 +21,15 @@ pub struct Trace<T = NotSimplified> {
 
 impl Trace {
     pub fn from_linestring<T>(&self, linestring: LineString<f64>) -> Trace<T> {
-        let coords: HashMap<(u64, u64), String> = self
+        let coords: HashMap<(u64, u64), (String, DateTime<Utc>)> = self
             .points
             .iter()
-            .map(|p| ((p.x.to_bits(), p.y.to_bits()), p.id.to_string()))
+            .map(|p| {
+                (
+                    (p.x.to_bits(), p.y.to_bits()),
+                    (p.id.to_string(), p.timestamp),
+                )
+            })
             .collect();
 
         let points = linestring
@@ -31,8 +37,9 @@ impl Trace {
             .filter_map(|coord| {
                 coords
                     .get(&(coord.x.to_bits(), coord.y.to_bits()))
-                    .map(|id| PointWithId {
+                    .map(|(id, timestamp)| PointWithId {
                         id: id.to_string(),
+                        timestamp: timestamp.to_owned(),
                         x: coord.x,
                         y: coord.y,
                     })
@@ -43,6 +50,13 @@ impl Trace {
             points,
             status: PhantomData,
         }
+    }
+
+    pub fn get_edges(&self) -> (&PointWithId, &PointWithId) {
+        let start_point = self.points.first().unwrap();
+        let end_point = self.points.last().unwrap();
+
+        (start_point, end_point)
     }
 
     pub fn haversine_length(&self) -> f64 {
