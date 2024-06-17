@@ -94,32 +94,6 @@ impl Journey {
                     properties: create_properties("#00ff00", "2", "1"),
                     foreign_members: None,
                 },
-                Feature {
-                    bbox: None,
-                    geometry: Some(Geometry {
-                        value: geojson::Value::from(&LineString::from(
-                            &driver_trace.simplified(&0.00001),
-                        )),
-                        bbox: None,
-                        foreign_members: None,
-                    }),
-                    id: None,
-                    properties: create_properties("#00a3d7", "2", "1"),
-                    foreign_members: None,
-                },
-                Feature {
-                    bbox: None,
-                    geometry: Some(Geometry {
-                        value: geojson::Value::from(&LineString::from(
-                            &passenger_trace.simplified(&0.00001),
-                        )),
-                        bbox: None,
-                        foreign_members: None,
-                    }),
-                    id: None,
-                    properties: create_properties("#ff6251", "2", "1"),
-                    foreign_members: None,
-                },
             ],
             foreign_members: None,
         }

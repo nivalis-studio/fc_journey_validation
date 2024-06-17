@@ -3,8 +3,8 @@ use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 use geo::{
-    Coord, FrechetDistance, HaversineDistance, HaversineLength, LineString, Point,
-    RemoveRepeatedPoints, Simplify,
+    Coord, FrechetDistance, HaversineBearing, HaversineDistance, HaversineLength, LineString,
+    Point, RemoveRepeatedPoints, Simplify,
 };
 
 use crate::{
@@ -14,6 +14,7 @@ use crate::{
 };
 
 const MAX_POINTS_DELTA_IN_METERS: u16 = 1000;
+const MAX_BEARING: f64 = 90.0;
 
 pub struct Simplified;
 pub struct NotSimplified;
@@ -102,8 +103,7 @@ impl Trace {
 
         let all_points = &all_points[0..=ty_idx];
 
-        let mut homogenous_segments: Vec<Vec<&PointWithId>> = Vec::new();
-        let mut mixed_segments: Vec<Vec<&PointWithId>> = Vec::new();
+        let mut common_points: Vec<&PointWithId> = Vec::new();
 
         for (idx, curr) in all_points.iter().enumerate() {
             let prev = if idx > 0 {
@@ -111,89 +111,26 @@ impl Trace {
             } else {
                 None
             };
-            let prev_prev = if idx > 1 {
-                all_points.get(idx - 2)
-            } else {
-                None
-            };
             let next = all_points.get(idx + 1);
 
             if let Some(prev) = prev {
-                if curr.trace_id == prev.trace_id {
-                    homogenous_segments.last_mut().unwrap().push(curr);
-                    continue;
-                }
-            }
+                if let Some(next) = next {
+                    let point = Point::from(*curr);
+                    let prev_point = Point::from(*prev);
+                    let next_point = Point::from(*next);
 
-            if let Some(next) = next {
-                if curr.trace_id == next.trace_id {
-                    homogenous_segments.push(vec![curr]);
-                    continue;
-                }
-            }
+                    let bearing_prev = point.haversine_bearing(prev_point);
+                    let bearing_next = point.haversine_bearing(next_point);
 
-            if let Some(prev) = prev {
-                if let Some(prev_prev) = prev_prev {
-                    if prev_prev.trace_id == prev.trace_id {
-                        mixed_segments.push(vec![curr]);
+                    // TODO: play with the MAX_BEARING value
+                    if bearing_prev < MAX_BEARING && bearing_next < MAX_BEARING {
                         continue;
                     }
                 }
             }
-
-            if let Some(segment) = mixed_segments.last_mut() {
-                segment.push(curr);
-                continue;
-            }
-
-            mixed_segments.push(vec![curr]);
+            common_points.push(curr)
         }
 
-        let homogenous_distance = get_segments_length(&homogenous_segments);
-        // FIXME: calculate mixed distance more precisely
-        let mixed_distance = get_segments_length(&mixed_segments);
-        let common_distance = homogenous_distance + mixed_distance;
-
-        let trace: Trace<Simplified> = Trace {
-            id: "test".into(),
-            points: homogenous_segments
-                .iter()
-                .flatten()
-                .cloned()
-                .cloned()
-                .collect(),
-            status: PhantomData,
-        }
-        .simplified(&0.00001);
-        trace.visualize();
-
-        let trace: Trace<Simplified> = Trace {
-            id: "test".into(),
-            points: mixed_segments.iter().flatten().cloned().cloned().collect(),
-            status: PhantomData,
-        }
-        .simplified(&0.00001);
-        trace.visualize();
-
-        CommonTrace {
-            common_distance,
-            common_start_point: PointOutput::from(all_points.first().unwrap().to_owned()),
-            common_end_point: PointOutput::from(ty.to_owned()),
-        }
-    }
-}
-
-impl<T> Trace<T> {
-    pub fn visualize(&self) {
-        let geojson = self.to_geojson().to_string();
-
-        let uri_data = urlencoding::encode(&geojson);
-        let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
-
-        open::that(url).unwrap();
-    }
-
-    pub fn to_geojson(&self) -> FeatureCollection {
         let create_properties = |color: &str, width: &str, opacity: &str| -> Option<JsonObject> {
             let mut properties = JsonObject::new();
             let properties_: HashMap<String, JsonValue> = [
@@ -209,21 +146,44 @@ impl<T> Trace<T> {
 
             Some(properties)
         };
-
-        FeatureCollection {
+        let feature = Feature {
             bbox: None,
-            features: vec![Feature {
+            geometry: Some(Geometry {
+                value: geojson::Value::from(&LineString::from(
+                    common_points
+                        .iter()
+                        .map(|p| Coord::from(*p))
+                        .collect::<Vec<Coord<f64>>>(),
+                )),
                 bbox: None,
-                geometry: Some(Geometry {
-                    value: geojson::Value::from(&LineString::from(self)),
-                    bbox: None,
-                    foreign_members: None,
-                }),
-                id: None,
-                properties: create_properties("#00a3d7", "2", "1"),
+
                 foreign_members: None,
-            }],
+            }),
+            id: None,
+            properties: create_properties("#ff0000", "2", "1"),
             foreign_members: None,
+        };
+
+        let geojson = FeatureCollection {
+            bbox: None,
+            features: vec![feature],
+            foreign_members: None,
+        }
+        .to_string();
+
+        let uri_data = urlencoding::encode(&geojson);
+        let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
+
+        open::that(url).unwrap();
+
+        // WARN: this doesn't return the same value as mapbox
+        // TODO: check if the difference is constant
+        let common_distance = LineString::from(common_points).haversine_length();
+
+        CommonTrace {
+            common_distance,
+            common_start_point: PointOutput::from(all_points.first().unwrap().to_owned()),
+            common_end_point: PointOutput::from(ty.to_owned()),
         }
     }
 }
@@ -232,16 +192,6 @@ pub struct CommonTrace {
     pub common_distance: f64,
     pub common_start_point: PointOutput,
     pub common_end_point: PointOutput,
-}
-
-fn get_segments_length(segments: &[Vec<&PointWithId>]) -> f64 {
-    segments
-        .iter()
-        .map(|v| {
-            LineString::from(v.iter().map(|p| Coord::from(*p)).collect::<Vec<Coord>>())
-                .haversine_length()
-        })
-        .sum()
 }
 
 impl Trace<NotSimplified> {
