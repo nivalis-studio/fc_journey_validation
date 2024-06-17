@@ -18,7 +18,7 @@ pub enum JourneyValidationError {
     #[error("Missing {0} trace")]
     MissingTrace(String),
 
-    #[error("Empty trace {0}")]
+    #[error("Empty {0} trace")]
     EmptyTrace(String),
 
     #[error("{0} points timestamps are too far apart")]

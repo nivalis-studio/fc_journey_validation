@@ -106,8 +106,8 @@ impl From<&Trace> for LineString<f64> {
     }
 }
 
-impl From<TraceInput> for Trace {
-    fn from(value: TraceInput) -> Self {
+impl From<&TraceInput> for Trace {
+    fn from(value: &TraceInput) -> Self {
         let points = value.points.iter().map(PointWithId::from).collect();
 
         Self {
