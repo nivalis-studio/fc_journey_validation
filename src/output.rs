@@ -34,6 +34,7 @@ pub enum Output {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TracesOutput {
     pub driver_trace: TraceOutput,
     pub passenger_trace: TraceOutput,
