@@ -50,8 +50,8 @@ impl Journey {
     }
 
     pub fn to_geojson(&self) -> FeatureCollection {
-        let driver_trace = self.driver_trace.simplified(&0.00001);
-        let passenger_trace = self.driver_trace.simplified(&0.00001);
+        let driver_trace = &self.driver_trace;
+        let passenger_trace = &self.passenger_trace;
 
         let create_properties = |color: &str, width: &str, opacity: &str| -> Option<JsonObject> {
             let mut properties = JsonObject::new();
@@ -75,7 +75,31 @@ impl Journey {
                 Feature {
                     bbox: None,
                     geometry: Some(Geometry {
-                        value: geojson::Value::from(&LineString::from(&driver_trace)),
+                        value: geojson::Value::from(&LineString::from(driver_trace)),
+                        bbox: None,
+                        foreign_members: None,
+                    }),
+                    id: None,
+                    properties: create_properties("#ff0000", "2", "1"),
+                    foreign_members: None,
+                },
+                Feature {
+                    bbox: None,
+                    geometry: Some(Geometry {
+                        value: geojson::Value::from(&LineString::from(passenger_trace)),
+                        bbox: None,
+                        foreign_members: None,
+                    }),
+                    id: None,
+                    properties: create_properties("#00ff00", "2", "1"),
+                    foreign_members: None,
+                },
+                Feature {
+                    bbox: None,
+                    geometry: Some(Geometry {
+                        value: geojson::Value::from(&LineString::from(
+                            &driver_trace.simplified(&0.00001),
+                        )),
                         bbox: None,
                         foreign_members: None,
                     }),
@@ -86,7 +110,9 @@ impl Journey {
                 Feature {
                     bbox: None,
                     geometry: Some(Geometry {
-                        value: geojson::Value::from(&LineString::from(&passenger_trace)),
+                        value: geojson::Value::from(&LineString::from(
+                            &passenger_trace.simplified(&0.00001),
+                        )),
                         bbox: None,
                         foreign_members: None,
                     }),
