@@ -2,8 +2,8 @@ use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 use geo::{
-    Closest, HaversineClosestPoint, HaversineDistance, HaversineLength, LineString, Point,
-    RemoveRepeatedPoints, Simplify,
+    Closest, FrechetDistance, HaversineClosestPoint, HaversineDistance, HaversineLength,
+    LineString, Point, RemoveRepeatedPoints, Simplify,
 };
 
 use crate::{input::TraceInput, point::PointWithId};
@@ -62,6 +62,10 @@ impl Trace {
     pub fn haversine_length(&self) -> f64 {
         let linestring = LineString::from(self);
         linestring.haversine_length()
+    }
+
+    pub fn get_distance_with(&self, other: &Trace) -> f64 {
+        LineString::from(self).frechet_distance(&other.into())
     }
 
     pub fn get_common_linestring_with(&self, other: &Trace) -> LineString {
