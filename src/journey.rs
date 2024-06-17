@@ -29,7 +29,7 @@ impl Journey {
         ]
         .iter()
         {
-            if first.get_time_delta_from(second) > MAX_DELTA_IN_MILLISECONDS {
+            if first.get_ms_delta_with(second) > MAX_DELTA_IN_MILLISECONDS {
                 return Err(JourneyValidationError::TimestampsDeltaTooBig(
                     name.to_string(),
                 ));
