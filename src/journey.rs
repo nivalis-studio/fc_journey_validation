@@ -14,6 +14,12 @@ impl Journey {
         Ok(())
     }
 
+    pub fn confidence(&self) -> f64 {
+        let frechet_distance = self.driver_trace.get_distance_with(&self.passenger_trace);
+
+        1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
+    }
+
     pub fn validate_edges(&self) -> Result<()> {
         let Self {
             driver_trace,
