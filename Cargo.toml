@@ -25,3 +25,5 @@ chrono = { version = "0.4.38", features = ["serde"] }
 geojson = "0.24.1"
 once_cell = { version = "1.19.0" }
 thiserror = { version = "1.0.61" }
+open = { version = "5.1.4" }
+urlencoding = { version = "2.1.3" }
