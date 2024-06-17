@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f64, isize, marker::PhantomData, num::Wrapping};
+use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 use geo::{
@@ -196,8 +196,8 @@ impl From<Trace<Simplified>> for TraceOutput {
     }
 }
 
-impl From<&Trace> for LineString<f64> {
-    fn from(value: &Trace) -> Self {
+impl<T> From<&Trace<T>> for LineString<f64> {
+    fn from(value: &Trace<T>) -> Self {
         LineString::from(
             value
                 .points
