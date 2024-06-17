@@ -1,8 +1,50 @@
-use crate::{error::JourneyValidationError, input::JourneyInput, trace::Trace};
+use crate::{error::JourneyValidationError, input::JourneyInput, trace::Trace, Result};
+
+const MAX_DELTA_IN_MILLISECONDS: i64 = 90_000;
 
 pub struct Journey {
     pub driver_trace: Trace,
     pub passenger_trace: Trace,
+}
+
+impl Journey {
+    pub fn validate(&self) -> Result<()> {
+        self.validate_edges()?;
+
+        Ok(())
+    }
+
+    pub fn validate_edges(&self) -> Result<()> {
+        let Self {
+            driver_trace,
+            passenger_trace,
+        } = self;
+
+        let (driver_start, driver_end) = driver_trace.get_edges();
+        let (passenger_start, passenger_end) = passenger_trace.get_edges();
+
+        for ((first, second), name) in [
+            ((driver_start, passenger_start), "start"),
+            ((driver_end, passenger_end), "end"),
+        ]
+        .iter()
+        {
+            if first.get_time_delta_from(second) > MAX_DELTA_IN_MILLISECONDS {
+                return Err(JourneyValidationError::TimestampsDeltaTooBig(
+                    name.to_string(),
+                ));
+            }
+        }
+
+        if ![driver_start, driver_end, passenger_start, passenger_end]
+            .iter()
+            .any(|p| p.is_in_france())
+        {
+            return Err(JourneyValidationError::NotInFrance);
+        }
+
+        Ok(())
+    }
 }
 
 impl TryFrom<JourneyInput> for Journey {

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use geo::{Coord, Point, Within};
 use std::f64;
 
@@ -8,17 +9,26 @@ pub struct PointWithId {
     pub id: String,
     pub x: f64,
     pub y: f64,
+    pub timestamp: DateTime<Utc>,
 }
 
 impl PointWithId {
     pub fn is_in_france(&self) -> bool {
         Point::from(self).is_within(&*FRANCE)
     }
+
+    pub fn get_time_delta_from(&self, other: &PointWithId) -> i64 {
+        self.timestamp
+            .signed_duration_since(other.timestamp)
+            .num_seconds()
+            .abs()
+    }
 }
 
 impl From<&PointInput> for PointWithId {
     fn from(value: &PointInput) -> Self {
         Self {
+            timestamp: value.timestamp,
             id: value.id.to_string(),
             x: value.longitude,
             y: value.latitude,
