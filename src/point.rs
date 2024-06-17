@@ -17,10 +17,10 @@ impl PointWithId {
         Point::from(self).is_within(&*FRANCE)
     }
 
-    pub fn get_time_delta_from(&self, other: &PointWithId) -> i64 {
+    pub fn get_ms_delta_with(&self, other: &PointWithId) -> i64 {
         self.timestamp
             .signed_duration_since(other.timestamp)
-            .num_seconds()
+            .num_milliseconds()
             .abs()
     }
 }
