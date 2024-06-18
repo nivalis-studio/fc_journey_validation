@@ -59,17 +59,8 @@ impl Journey {
         let (driver_start, driver_end) = driver_trace.get_edges();
         let (passenger_start, passenger_end) = passenger_trace.get_edges();
 
-        for ((first, second), name) in [
-            ((driver_start, passenger_start), "Start"),
-            ((driver_end, passenger_end), "End"),
-        ]
-        .iter()
-        {
-            if first.get_ms_delta_with(second) > MAX_DELTA_IN_MILLISECONDS {
-                return Err(JourneyValidationError::TimestampsDeltaTooBig(
-                    name.to_string(),
-                ));
-            }
+        if driver_start.get_ms_delta_with(passenger_start) > MAX_DELTA_IN_MILLISECONDS {
+            return Err(JourneyValidationError::StartTimeDeltaTooBig);
         }
 
         if ![driver_start, driver_end, passenger_start, passenger_end]

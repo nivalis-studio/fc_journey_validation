@@ -21,8 +21,8 @@ pub enum JourneyValidationError {
     #[error("Empty {0} trace")]
     EmptyTrace(String),
 
-    #[error("{0} points timestamps are too far apart")]
-    TimestampsDeltaTooBig(String),
+    #[error("Start points timestamps are too far apart")]
+    StartTimeDeltaTooBig,
 
     #[error("Not in France")]
     NotInFrance,
