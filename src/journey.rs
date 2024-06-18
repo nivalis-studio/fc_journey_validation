@@ -7,6 +7,7 @@ use crate::{
 };
 
 const MAX_DELTA_IN_MILLISECONDS: i64 = 90_000;
+const SIMPLIFY_EPSILON: f64 = 0.00001;
 
 pub struct Journey {
     pub driver_trace: Trace,
@@ -15,10 +16,9 @@ pub struct Journey {
 
 impl Journey {
     pub fn validate(&self) -> Output {
-        match self.validate_edges() {
-            Ok(_) => {}
-            Err(err) => return Output::from(err),
-        };
+        if let Err(err) = self.validate_edges() {
+            return Output::from(err);
+        }
 
         let CommonTrace {
             common_distance,
@@ -26,8 +26,8 @@ impl Journey {
             common_end_point,
         } = self.driver_trace.common_trace_with(&self.passenger_trace);
 
-        let driver_trace = self.driver_trace.simplified(&0.00001).into();
-        let passenger_trace = self.driver_trace.simplified(&0.00001).into();
+        let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();
+        let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();
         let average_confidence = self.confidence();
 
         Output::Success(crate::output::OutputSuccess {
@@ -43,21 +43,12 @@ impl Journey {
     }
 
     pub fn confidence(&self) -> f64 {
-        let frechet_distance = self
-            .driver_trace
-            .frechet_distance_with(&self.passenger_trace);
-
-        1.0 - ((frechet_distance * 1000.0) / 100.0).clamp(0.0, 1.0)
+        self.driver_trace.confidence_with(&self.passenger_trace)
     }
 
     pub fn validate_edges(&self) -> Result<()> {
-        let Self {
-            driver_trace,
-            passenger_trace,
-        } = self;
-
-        let (driver_start, driver_end) = driver_trace.get_edges();
-        let (passenger_start, passenger_end) = passenger_trace.get_edges();
+        let (driver_start, driver_end) = self.driver_trace.get_edges();
+        let (passenger_start, passenger_end) = self.passenger_trace.get_edges();
 
         if driver_start.get_ms_delta_with(passenger_start) > MAX_DELTA_IN_MILLISECONDS {
             return Err(JourneyValidationError::StartTimeDeltaTooBig);
@@ -78,12 +69,13 @@ impl TryFrom<JourneyInput> for Journey {
     type Error = JourneyValidationError;
 
     fn try_from(journey: JourneyInput) -> Result<Self, Self::Error> {
-        if journey.start_time.is_none() {
-            return Err(JourneyValidationError::MissingStartTime);
-        }
-        if journey.end_time.is_none() {
-            return Err(JourneyValidationError::MissingEndTime);
-        }
+        journey
+            .start_time
+            .ok_or(JourneyValidationError::MissingStartTime)?;
+
+        journey
+            .end_time
+            .ok_or(JourneyValidationError::MissingEndTime)?;
 
         let driver_id = journey
             .driver_id
@@ -102,13 +94,13 @@ impl TryFrom<JourneyInput> for Journey {
         let driver_trace = journey
             .gps_trace
             .iter()
-            .find(|t| t.user_id.as_str() == driver_id)
+            .find(|t| t.user_id == *driver_id)
             .ok_or(JourneyValidationError::MissingTrace("driver".into()))?;
 
         let passenger_trace = journey
             .gps_trace
             .iter()
-            .find(|t| t.user_id.as_str() == passenger_id)
+            .find(|t| t.user_id == *passenger_id)
             .ok_or(JourneyValidationError::MissingTrace("passenger_id".into()))?;
 
         if driver_trace.points.len() < 2 {
