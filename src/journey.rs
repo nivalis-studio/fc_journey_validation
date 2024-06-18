@@ -94,13 +94,13 @@ impl TryFrom<JourneyInput> for Journey {
         let driver_trace = journey
             .gps_trace
             .iter()
-            .find(|t| t.user_id == *driver_id)
+            .find(|t| t.user_id.as_ref() == Some(driver_id))
             .ok_or(JourneyValidationError::MissingTrace("driver".into()))?;
 
         let passenger_trace = journey
             .gps_trace
             .iter()
-            .find(|t| t.user_id == *passenger_id)
+            .find(|t| t.user_id.as_ref() == Some(passenger_id))
             .ok_or(JourneyValidationError::MissingTrace("passenger_id".into()))?;
 
         if driver_trace.points.len() < 2 {
