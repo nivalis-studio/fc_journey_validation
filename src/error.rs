@@ -15,6 +15,9 @@ pub enum JourneyValidationError {
     #[error("Too many traces")]
     TooManyTraces,
 
+    #[error("No common points")]
+    NoCommonPoints,
+
     #[error("Missing {0} trace")]
     MissingTrace(String),
 
