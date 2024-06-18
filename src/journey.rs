@@ -60,8 +60,8 @@ impl Journey {
         let (passenger_start, passenger_end) = passenger_trace.get_edges();
 
         for ((first, second), name) in [
-            ((driver_start, passenger_start), "start"),
-            ((driver_end, passenger_end), "end"),
+            ((driver_start, passenger_start), "Start"),
+            ((driver_end, passenger_end), "End"),
         ]
         .iter()
         {
