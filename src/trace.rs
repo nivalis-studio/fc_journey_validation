@@ -12,7 +12,7 @@ use crate::{
     point::PointWithId,
 };
 
-const MAX_POINTS_DELTA_IN_METERS: u16 = 1000;
+const MAX_POINTS_DELTA_IN_METERS: f64 = 1000.0;
 const MAX_BEARING: f64 = 90.0;
 
 pub struct Simplified;
@@ -84,21 +84,22 @@ impl Trace {
 
         let tx = all_points.last().unwrap();
         let trace_without_tx = if tx.trace_id == self.id { self } else { other };
-        let (ty_idx, ty) = all_points
-            .iter()
-            .enumerate()
-            .rfind(|(_, p)| {
-                if p.trace_id == tx.trace_id {
-                    return false;
-                }
+        let (ty_idx, ty) =
+            all_points
+                .iter()
+                .enumerate()
+                .rfind(|(_, p)| {
+                    if p.trace_id == tx.trace_id {
+                        return false;
+                    }
 
-                let point: Point<f64> = Point::from(**p);
+                    let point: Point<f64> = Point::from(**p);
 
-                trace_without_tx.points.iter().rev().any(|p| {
-                    Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS as f64
+                    trace_without_tx.points.iter().rev().any(|p| {
+                        Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS
+                    })
                 })
-            })
-            .unwrap();
+                .unwrap();
 
         let all_points = &all_points[0..=ty_idx];
 
