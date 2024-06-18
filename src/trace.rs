@@ -1,10 +1,9 @@
-use geojson::{Feature, FeatureCollection, Geometry, JsonObject, JsonValue};
 use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 use geo::{
-    Coord, FrechetDistance, HaversineBearing, HaversineDistance, HaversineLength, LineString,
-    Point, RemoveRepeatedPoints, Simplify,
+    FrechetDistance, HaversineBearing, HaversineDistance, HaversineLength, LineString, Point,
+    RemoveRepeatedPoints, Simplify,
 };
 
 use crate::{
@@ -131,53 +130,6 @@ impl Trace {
             common_points.push(curr)
         }
 
-        let create_properties = |color: &str, width: &str, opacity: &str| -> Option<JsonObject> {
-            let mut properties = JsonObject::new();
-            let properties_: HashMap<String, JsonValue> = [
-                ("stroke".to_string(), JsonValue::from(color)),
-                ("stroke-width".to_string(), JsonValue::from(width)),
-                ("stroke-opacity".to_string(), JsonValue::from(opacity)),
-            ]
-            .iter()
-            .cloned()
-            .collect();
-
-            properties.extend(properties_);
-
-            Some(properties)
-        };
-        let feature = Feature {
-            bbox: None,
-            geometry: Some(Geometry {
-                value: geojson::Value::from(&LineString::from(
-                    common_points
-                        .iter()
-                        .map(|p| Coord::from(*p))
-                        .collect::<Vec<Coord<f64>>>(),
-                )),
-                bbox: None,
-
-                foreign_members: None,
-            }),
-            id: None,
-            properties: create_properties("#ff0000", "2", "1"),
-            foreign_members: None,
-        };
-
-        let geojson = FeatureCollection {
-            bbox: None,
-            features: vec![feature],
-            foreign_members: None,
-        }
-        .to_string();
-
-        let uri_data = urlencoding::encode(&geojson);
-        let url = format!("http://geojson.io/#data=data:application/json,{}", uri_data);
-
-        open::that(url).unwrap();
-
-        // WARN: this doesn't return the same value as mapbox
-        // TODO: check if the difference is constant
         let common_distance = LineString::from(common_points).haversine_length();
 
         CommonTrace {
