@@ -24,7 +24,10 @@ impl Journey {
             common_distance,
             common_start_point,
             common_end_point,
-        } = self.driver_trace.common_trace_with(&self.passenger_trace);
+        } = match self.driver_trace.common_trace_with(&self.passenger_trace) {
+            Ok(common_trace) => common_trace,
+            Err(err) => return Output::from(err),
+        };
 
         let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();
         let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();

@@ -7,9 +7,11 @@ use geo::{
 };
 
 use crate::{
+    error::JourneyValidationError,
     input::TraceInput,
     output::{PointOutput, TraceOutput},
     point::PointWithId,
+    Result,
 };
 
 const MAX_POINTS_DELTA_IN_METERS: f64 = 1000.0;
@@ -76,7 +78,7 @@ impl Trace {
             .clamp(0.0, 1.0)
     }
 
-    pub fn common_trace_with(&self, other: &Trace) -> CommonTrace {
+    pub fn common_trace_with(&self, other: &Trace) -> Result<CommonTrace> {
         let mut all_points: Vec<&PointWithId> =
             self.points.iter().chain(other.points.iter()).collect();
 
@@ -84,22 +86,24 @@ impl Trace {
 
         let tx = all_points.last().unwrap();
         let trace_without_tx = if tx.trace_id == self.id { self } else { other };
-        let (ty_idx, ty) =
-            all_points
+        let ty_data = all_points.iter().enumerate().rfind(|(_, p)| {
+            if p.trace_id == tx.trace_id {
+                return false;
+            }
+
+            let point: Point<f64> = Point::from(**p);
+
+            trace_without_tx
+                .points
                 .iter()
-                .enumerate()
-                .rfind(|(_, p)| {
-                    if p.trace_id == tx.trace_id {
-                        return false;
-                    }
+                .rev()
+                .any(|p| Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS)
+        });
 
-                    let point: Point<f64> = Point::from(**p);
-
-                    trace_without_tx.points.iter().rev().any(|p| {
-                        Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS
-                    })
-                })
-                .unwrap();
+        let (ty_idx, ty) = match ty_data {
+            Some(info) => info,
+            None => return Err(JourneyValidationError::NoCommonPoints),
+        };
 
         let all_points = &all_points[0..=ty_idx];
 
@@ -132,11 +136,11 @@ impl Trace {
             .simplify(&0.00001)
             .haversine_length();
 
-        CommonTrace {
+        Ok(CommonTrace {
             common_distance,
             common_start_point: PointOutput::from(*all_points.first().unwrap()),
             common_end_point: PointOutput::from(*ty),
-        }
+        })
     }
 }
 
@@ -306,7 +310,7 @@ mod tests {
             status: PhantomData::<NotSimplified>,
         };
 
-        let common_trace = trace1.common_trace_with(&trace2);
+        let common_trace = trace1.common_trace_with(&trace2).unwrap();
 
         assert_eq!(common_trace.common_distance, 7916.0507217867325);
         assert_eq!(common_trace.common_start_point.id, "1");
