@@ -24,7 +24,7 @@ pub struct TraceInput {
     pub id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub user_id: String,
+    pub user_id: Option<String>,
     pub points: Vec<PointInput>,
 }
 
