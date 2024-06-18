@@ -130,7 +130,9 @@ impl Trace {
             common_points.push(curr)
         }
 
-        let common_distance = LineString::from(common_points).haversine_length();
+        let common_distance = LineString::from(common_points)
+            .simplify(&0.00001)
+            .haversine_length();
 
         CommonTrace {
             common_distance,
