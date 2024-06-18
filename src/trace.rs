@@ -44,8 +44,8 @@ impl Trace {
                 coords
                     .get(&(coord.x.to_bits(), coord.y.to_bits()))
                     .map(|(id, timestamp)| PointWithId {
-                        trace_id: self.id.to_string(),
-                        id: id.to_string(),
+                        trace_id: self.id.clone(),
+                        id: id.clone(),
                         timestamp: timestamp.to_owned(),
                         x: coord.x,
                         y: coord.y,
@@ -54,7 +54,7 @@ impl Trace {
             .collect();
 
         Trace {
-            id: self.id.to_string(),
+            id: self.id.clone(),
             points,
             status: PhantomData,
         }
@@ -68,12 +68,12 @@ impl Trace {
     }
 
     pub fn haversine_length(&self) -> f64 {
-        let linestring = LineString::from(self);
-        linestring.haversine_length()
+        LineString::from(self).haversine_length()
     }
 
-    pub fn frechet_distance_with(&self, other: &Trace) -> f64 {
-        LineString::from(self).frechet_distance(&other.into())
+    pub fn confidence_with(&self, other: &Trace) -> f64 {
+        1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
+            .clamp(0.0, 1.0)
     }
 
     pub fn common_trace_with(&self, other: &Trace) -> CommonTrace {
@@ -112,19 +112,16 @@ impl Trace {
             };
             let next = all_points.get(idx + 1);
 
-            if let Some(prev) = prev {
-                if let Some(next) = next {
-                    let point = Point::from(*curr);
-                    let prev_point = Point::from(*prev);
-                    let next_point = Point::from(*next);
+            if let (Some(prev), Some(next)) = (prev, next) {
+                let point = Point::from(*curr);
+                let prev_point = Point::from(*prev);
+                let next_point = Point::from(*next);
 
-                    let bearing_prev = point.haversine_bearing(prev_point);
-                    let bearing_next = point.haversine_bearing(next_point);
+                let bearing_prev = point.haversine_bearing(prev_point);
+                let bearing_next = point.haversine_bearing(next_point);
 
-                    // TODO: play with the MAX_BEARING value
-                    if bearing_prev < MAX_BEARING && bearing_next < MAX_BEARING {
-                        continue;
-                    }
+                if bearing_prev < MAX_BEARING && bearing_next < MAX_BEARING {
+                    continue;
                 }
             }
             common_points.push(curr)
@@ -136,8 +133,8 @@ impl Trace {
 
         CommonTrace {
             common_distance,
-            common_start_point: PointOutput::from(all_points.first().unwrap().to_owned()),
-            common_end_point: PointOutput::from(ty.to_owned()),
+            common_start_point: PointOutput::from(*all_points.first().unwrap()),
+            common_end_point: PointOutput::from(*ty),
         }
     }
 }
@@ -149,20 +146,20 @@ pub struct CommonTrace {
 }
 
 impl Trace<NotSimplified> {
-    pub fn simplified(&self, epsilon: &f64) -> Trace<Simplified> {
-        let linestring = LineString::from(self)
-            .remove_repeated_points()
-            .simplify(epsilon);
-
-        self.from_linestring(linestring)
+    pub fn simplified(&self, epsilon: f64) -> Trace<Simplified> {
+        self.from_linestring(
+            LineString::from(self)
+                .remove_repeated_points()
+                .simplify(&epsilon),
+        )
     }
 }
 
 impl From<Trace<Simplified>> for TraceOutput {
     fn from(value: Trace<Simplified>) -> Self {
         Self {
-            id: value.id.to_owned(),
-            points: value.points.iter().map(|p| p.id.to_owned()).collect(),
+            id: value.id,
+            points: value.points.into_iter().map(|p| p.id).collect(),
         }
     }
 }
@@ -184,9 +181,134 @@ impl From<&TraceInput> for Trace {
         let points = value.points.iter().map(PointWithId::from).collect();
 
         Self {
-            id: value.id.to_string(),
+            id: value.id.clone(),
             points,
             status: PhantomData,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+
+    fn create_sample_points() -> (Vec<PointWithId>, Vec<PointWithId>) {
+        (
+            vec![
+                PointWithId {
+                    id: "1".to_string(),
+                    x: 2.3522,
+                    y: 48.8566,
+                    trace_id: "trace_1".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 0, 0).unwrap(),
+                },
+                PointWithId {
+                    id: "2".to_string(),
+                    x: 2.295,
+                    y: 48.8738,
+                    trace_id: "trace_1".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 10, 0).unwrap(),
+                },
+                PointWithId {
+                    id: "3".to_string(),
+                    x: 2.3333,
+                    y: 48.8606,
+                    trace_id: "trace_1".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 0).unwrap(),
+                },
+            ],
+            vec![
+                PointWithId {
+                    id: "4".to_string(),
+                    x: 2.3522,
+                    y: 48.8566,
+                    trace_id: "trace_2".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 0, 0).unwrap(),
+                },
+                PointWithId {
+                    id: "5".to_string(),
+                    x: 2.296,
+                    y: 48.875,
+                    trace_id: "trace_2".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 10, 0).unwrap(),
+                },
+                PointWithId {
+                    id: "6".to_string(),
+                    x: 2.3333,
+                    y: 48.8606,
+                    trace_id: "trace_2".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 0).unwrap(),
+                },
+            ],
+        )
+    }
+
+    #[test]
+    fn test_get_edges() {
+        let (points, _) = create_sample_points();
+        let trace = Trace {
+            id: "trace_1".to_string(),
+            points,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let (start, end) = trace.get_edges();
+        assert_eq!(start.id, "1");
+        assert_eq!(end.id, "3");
+    }
+
+    #[test]
+    fn test_haversine_length() {
+        let (points, _) = create_sample_points();
+        let trace = Trace {
+            id: "trace_1".to_string(),
+            points,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let length = trace.haversine_length();
+        assert_eq!(length, 7763.121089616901);
+    }
+
+    #[test]
+    fn test_confidence_with() {
+        let (points1, points2) = create_sample_points();
+        let trace1 = Trace {
+            id: "trace_1".to_string(),
+            points: points1,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let trace2 = Trace {
+            id: "trace_2".to_string(),
+            points: points2,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let distance = trace1.confidence_with(&trace2);
+        assert_eq!(distance, 0.9843795006482089);
+    }
+
+    #[test]
+    fn test_common_trace_with() {
+        let (points1, points2) = create_sample_points();
+        let trace1 = Trace {
+            id: "trace_1".to_string(),
+            points: points1,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let trace2 = Trace {
+            id: "trace_2".to_string(),
+            points: points2,
+            status: PhantomData::<NotSimplified>,
+        };
+
+        let common_trace = trace1.common_trace_with(&trace2);
+
+        assert_eq!(common_trace.common_distance, 7916.0507217867325);
+        assert_eq!(common_trace.common_start_point.id, "1");
+        assert_eq!(common_trace.common_end_point.id, "3");
     }
 }
