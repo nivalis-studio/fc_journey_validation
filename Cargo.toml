@@ -10,6 +10,7 @@ repository = "https://github.com/nivalis-studio/gps-trajectory-validation"
 keywords = ["geospatial"]
 categories = ["science::geo"]
 authors = ["pnodet <paul.nodet@gmail.com>", "pnwa <pnwa@icloud.com>"]
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,3 +26,8 @@ chrono = { version = "0.4.38", features = ["serde"] }
 geojson = "0.24.1"
 once_cell = { version = "1.19.0" }
 thiserror = { version = "1.0.61" }
+
+[build-dependencies]
+geo = { version = "0.28.0", features = ["use-serde"] }
+geojson = "0.24.1"
+serde_json = { version = "1.0.117" }
