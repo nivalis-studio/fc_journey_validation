@@ -32,14 +32,6 @@ impl Journey {
             Err(err) => return Output::from(err),
         };
 
-        if common_distance < MIN_DISTANCE {
-            return Output::from(JourneyValidationError::InvalidDistance("short".into()));
-        }
-
-        if common_distance > MAX_DISTANCE {
-            return Output::from(JourneyValidationError::InvalidDistance("long".into()));
-        }
-
         let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
         let passenger_trace = self.passenger_trace.simplified(SIMPLIFY_EPSILON);
         let average_confidence = driver_trace.confidence_with(&passenger_trace);
@@ -48,6 +40,14 @@ impl Journey {
             (&driver_trace, FeatureProperties::new().color("#ff0000")),
             (&passenger_trace, FeatureProperties::new().color("#00ff00")),
         ]);
+
+        if common_distance < MIN_DISTANCE {
+            return Output::from(JourneyValidationError::InvalidDistance("short".into()));
+        }
+
+        if common_distance > MAX_DISTANCE {
+            return Output::from(JourneyValidationError::InvalidDistance("long".into()));
+        }
 
         Output::Success(crate::output::OutputSuccess {
             average_confidence,
