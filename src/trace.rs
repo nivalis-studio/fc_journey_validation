@@ -69,10 +69,6 @@ impl Trace {
         (start_point, end_point)
     }
 
-    pub fn haversine_length(&self) -> f64 {
-        LineString::from(self).haversine_length()
-    }
-
     pub fn common_trace_with(&self, other: &Trace) -> Result<CommonTrace> {
         let mut all_points: Vec<&PointWithId> =
             self.points.iter().chain(other.points.iter()).collect();
@@ -160,13 +156,18 @@ impl Trace<Simplified> {
         1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
             .clamp(0.0, 1.0)
     }
+
+    pub fn haversine_length(&self) -> f64 {
+        LineString::from(self).haversine_length()
+    }
 }
 
 impl From<Trace<Simplified>> for TraceOutput {
     fn from(value: Trace<Simplified>) -> Self {
         Self {
-            id: value.id,
-            points: value.points.into_iter().map(|p| p.id).collect(),
+            id: value.id.clone(),
+            distance: value.haversine_length(),
+            points: value.points.clone().into_iter().map(|p| p.id).collect(),
         }
     }
 }
