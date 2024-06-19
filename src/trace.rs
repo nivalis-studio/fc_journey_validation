@@ -156,7 +156,9 @@ impl Trace<Simplified> {
         1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
             .clamp(0.0, 1.0)
     }
+}
 
+impl<T> Trace<T> {
     pub fn haversine_length(&self) -> f64 {
         LineString::from(self).haversine_length()
     }
@@ -167,7 +169,7 @@ impl From<Trace<Simplified>> for TraceOutput {
         Self {
             id: value.id.clone(),
             distance: value.haversine_length(),
-            points: value.points.clone().into_iter().map(|p| p.id).collect(),
+            points: value.points.into_iter().map(|p| p.id).collect(),
         }
     }
 }
