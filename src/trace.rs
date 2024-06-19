@@ -11,6 +11,7 @@ use crate::{
     input::TraceInput,
     output::{PointOutput, TraceOutput},
     point::PointWithId,
+    visualize::{visualize, FeatureProperties},
     Result,
 };
 
@@ -123,9 +124,11 @@ impl Trace {
             common_points.push(curr)
         }
 
-        let common_distance = LineString::from(common_points)
-            .simplify(&0.00001)
-            .haversine_length();
+        let common_linestring = LineString::from(common_points).simplify(&0.00001);
+
+        let common_distance = common_linestring.haversine_length();
+
+        visualize([(common_linestring, FeatureProperties::new().color("#00ff00"))]);
 
         Ok(CommonTrace {
             common_distance,
