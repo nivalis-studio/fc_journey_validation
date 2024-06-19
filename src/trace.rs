@@ -73,11 +73,6 @@ impl Trace {
         LineString::from(self).haversine_length()
     }
 
-    pub fn confidence_with(&self, other: &Trace) -> f64 {
-        1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
-            .clamp(0.0, 1.0)
-    }
-
     pub fn common_trace_with(&self, other: &Trace) -> Result<CommonTrace> {
         let mut all_points: Vec<&PointWithId> =
             self.points.iter().chain(other.points.iter()).collect();
@@ -157,6 +152,13 @@ impl Trace<NotSimplified> {
                 .remove_repeated_points()
                 .simplify(&epsilon),
         )
+    }
+}
+
+impl Trace<Simplified> {
+    pub fn confidence_with(&self, other: &Trace<Simplified>) -> f64 {
+        1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
+            .clamp(0.0, 1.0)
     }
 }
 
@@ -282,13 +284,13 @@ mod tests {
         let trace1 = Trace {
             id: "trace_1".to_string(),
             points: points1,
-            status: PhantomData::<NotSimplified>,
+            status: PhantomData::<Simplified>,
         };
 
         let trace2 = Trace {
             id: "trace_2".to_string(),
             points: points2,
-            status: PhantomData::<NotSimplified>,
+            status: PhantomData::<Simplified>,
         };
 
         let distance = trace1.confidence_with(&trace2);
