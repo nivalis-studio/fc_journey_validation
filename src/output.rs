@@ -43,6 +43,7 @@ pub struct TracesOutput {
 #[derive(Serialize)]
 pub struct TraceOutput {
     pub id: String,
+    pub distance: f64,
     pub points: Vec<String>,
 }
 

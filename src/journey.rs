@@ -8,6 +8,8 @@ use crate::{
 
 const MAX_DELTA_IN_MILLISECONDS: i64 = 90_000;
 const SIMPLIFY_EPSILON: f64 = 0.00001;
+const MAX_DISTANCE: f64 = 80_000.0;
+const MIN_DISTANCE: f64 = 1_000.0;
 
 pub struct Journey {
     pub driver_trace: Trace,
@@ -28,6 +30,14 @@ impl Journey {
             Ok(common_trace) => common_trace,
             Err(err) => return Output::from(err),
         };
+
+        if common_distance < MIN_DISTANCE {
+            return Output::from(JourneyValidationError::InvalidDistance("short".into()));
+        }
+
+        if common_distance > MAX_DISTANCE {
+            return Output::from(JourneyValidationError::InvalidDistance("long".into()));
+        }
 
         let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
         let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
@@ -100,7 +110,7 @@ impl TryFrom<JourneyInput> for Journey {
             .gps_trace
             .iter()
             .find(|t| t.user_id.as_ref() == Some(passenger_id))
-            .ok_or(JourneyValidationError::MissingTrace("passenger_id".into()))?;
+            .ok_or(JourneyValidationError::MissingTrace("passenger".into()))?;
 
         if driver_trace.points.len() < 2 {
             return Err(JourneyValidationError::EmptyTrace("driver".into()));
