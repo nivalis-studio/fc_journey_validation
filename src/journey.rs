@@ -41,7 +41,7 @@ impl Journey {
         }
 
         let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
-        let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
+        let passenger_trace = self.passenger_trace.simplified(SIMPLIFY_EPSILON);
         let average_confidence = driver_trace.confidence_with(&passenger_trace);
 
         visualize([
