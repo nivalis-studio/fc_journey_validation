@@ -29,24 +29,20 @@ impl Journey {
             Err(err) => return Output::from(err),
         };
 
-        let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();
-        let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON).into();
-        let average_confidence = self.confidence();
+        let driver_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
+        let passenger_trace = self.driver_trace.simplified(SIMPLIFY_EPSILON);
+        let average_confidence = driver_trace.confidence_with(&passenger_trace);
 
         Output::Success(crate::output::OutputSuccess {
             average_confidence,
             traces: TracesOutput {
-                passenger_trace,
-                driver_trace,
+                passenger_trace: passenger_trace.into(),
+                driver_trace: driver_trace.into(),
             },
             common_distance,
             common_start_point,
             common_end_point,
         })
-    }
-
-    pub fn confidence(&self) -> f64 {
-        self.driver_trace.confidence_with(&self.passenger_trace)
     }
 
     pub fn validate_edges(&self) -> Result<()> {
