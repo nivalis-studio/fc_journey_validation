@@ -11,7 +11,6 @@ use crate::{
     input::TraceInput,
     output::{PointOutput, TraceOutput},
     point::PointWithId,
-    visualize::{visualize, FeatureProperties},
     Result,
 };
 
@@ -130,8 +129,6 @@ impl Trace {
         let common_linestring = LineString::from(common_points).simplify(&0.00001);
 
         let common_distance = common_linestring.haversine_length();
-
-        visualize([(common_linestring, FeatureProperties::new().color("#00ff00"))]);
 
         Ok(CommonTrace {
             common_distance,
@@ -323,7 +320,7 @@ mod tests {
 
         let common_trace = trace1.common_trace_with(&trace2).unwrap();
 
-        assert_eq!(common_trace.common_distance, 7916.0507217867325);
+        assert_eq!(common_trace.common_distance, 1452.4532083743177);
         assert_eq!(common_trace.common_start_point.id, "1");
         assert_eq!(common_trace.common_end_point.id, "3");
     }
