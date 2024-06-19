@@ -2,8 +2,8 @@ use std::{collections::HashMap, f64, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
 use geo::{
-    FrechetDistance, HaversineBearing, HaversineDistance, HaversineLength, LineString, Point,
-    RemoveRepeatedPoints, Simplify,
+    EuclideanDistance, FrechetDistance, Geometry, HaversineBearing, HaversineLength, LineString,
+    Point, RemoveRepeatedPoints, Simplify,
 };
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 };
 
 const MAX_POINTS_DELTA_IN_METERS: f64 = 1000.0;
-const MAX_BEARING: f64 = 90.0;
+const MAX_BEARING: f64 = 110.0;
 
 pub struct Simplified;
 pub struct NotSimplified;
@@ -77,7 +77,7 @@ impl Trace {
         all_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
 
         let tx = all_points.last().unwrap();
-        let trace_without_tx = if tx.trace_id == self.id { self } else { other };
+        let trace_with_tx = if tx.trace_id == self.id { self } else { other };
         let ty_data = all_points.iter().enumerate().rfind(|(_, p)| {
             if p.trace_id == tx.trace_id {
                 return false;
@@ -85,11 +85,9 @@ impl Trace {
 
             let point: Point<f64> = Point::from(**p);
 
-            trace_without_tx
-                .points
-                .iter()
-                .rev()
-                .any(|p| Point::from(p).haversine_distance(&point) < MAX_POINTS_DELTA_IN_METERS)
+            Geometry::Point(point)
+                .euclidean_distance(&Geometry::LineString(LineString::from(trace_with_tx)))
+                < MAX_POINTS_DELTA_IN_METERS
         });
 
         let (ty_idx, ty) = match ty_data {
@@ -110,15 +108,20 @@ impl Trace {
             let next = all_points.get(idx + 1);
 
             if let (Some(prev), Some(next)) = (prev, next) {
-                let point = Point::from(*curr);
-                let prev_point = Point::from(*prev);
-                let next_point = Point::from(*next);
+                if prev.trace_id != curr.trace_id || next.trace_id != curr.trace_id {
+                    let point = Point::from(*curr);
+                    let prev_point = Point::from(*prev);
+                    let next_point = Point::from(*next);
 
-                let bearing_prev = point.haversine_bearing(prev_point);
-                let bearing_next = point.haversine_bearing(next_point);
+                    let bearing_prev = point.haversine_bearing(prev_point);
+                    let bearing_next = point.haversine_bearing(next_point);
+                    let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
 
-                if bearing_prev < MAX_BEARING && bearing_next < MAX_BEARING {
-                    continue;
+                    let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
+
+                    if angle < MAX_BEARING {
+                        continue;
+                    }
                 }
             }
             common_points.push(curr)
