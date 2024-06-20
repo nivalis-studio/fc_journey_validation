@@ -39,5 +39,4 @@ jobs:
           bin: gps-trajectory-validation
           tar: unix
           zip: all
-          features: ${{ matrix.features || '' }}
           token: ${{ secrets.GITHUB_TOKEN }}
