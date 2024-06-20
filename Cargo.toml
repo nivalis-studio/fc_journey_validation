@@ -1,6 +1,6 @@
 [package]
 name = "gps-trajectory-validation"
-description = "Convert E57 point cloud files to LAS"
+description = "Validate GPS trajectories using a set of rules"
 version = "0.4.7"
 readme = "README.md"
 license = "MIT"
@@ -11,8 +11,6 @@ keywords = ["geospatial"]
 categories = ["science::geo"]
 authors = ["pnodet <paul.nodet@gmail.com>", "pnwa <pnwa@icloud.com>"]
 build = "build.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.86"
