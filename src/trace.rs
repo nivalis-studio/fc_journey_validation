@@ -73,172 +73,185 @@ impl Trace {
     pub fn common_trace_with(&self, other: &Trace) -> Result<CommonTrace> {
         let mut all_points: Vec<&PointWithId> =
             self.points.iter().chain(other.points.iter()).collect();
-        all_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        all_points.sort_by_key(|p| p.timestamp);
 
-        let t1 = all_points.first().unwrap();
+        let t0 = all_points.first().unwrap();
         let tx = all_points.last().unwrap();
         let trace_with_tx = if tx.trace_id == self.id { self } else { other };
+        let ls_with_tx = Geometry::LineString(LineString::from(trace_with_tx));
+
         let ty_data = all_points.iter().enumerate().rfind(|(_, p)| {
             if p.trace_id == tx.trace_id {
                 return false;
             }
 
-            let point: Point<f64> = Point::from(**p);
-
-            Geometry::Point(point)
-                .euclidean_distance(&Geometry::LineString(LineString::from(trace_with_tx)))
+            Geometry::Point(Point::from(**p)).euclidean_distance(&ls_with_tx)
                 < MAX_POINTS_DELTA_IN_METERS
         });
 
         let (ty_idx, ty) = match ty_data {
-            Some(info) => info,
+            Some(data) => data,
             None => return Err(JourneyValidationError::NoCommonPoints),
         };
 
         let all_points = &all_points[0..=ty_idx];
 
-        let mut common_points: Vec<&PointWithId> = Vec::new();
+        let mut common_points: Vec<&PointWithId> = Vec::with_capacity(all_points.len());
         let mut idx = 0;
 
         while idx < all_points.len() {
-            let curr = all_points[idx];
+            let prev = common_points.last();
+            let mid = all_points[idx];
+            let next = all_points.get(idx + 1);
 
-            if idx == 0 {
-                common_points.push(curr);
+            idx += 1;
+
+            if idx == 1 {
+                common_points.push(mid);
+                continue;
+            }
+
+            if mid.id == ty.id {
+                common_points.push(mid);
+                break;
+            }
+
+            if prev.is_none() || next.is_none() {
+                common_points.push(mid);
+                continue;
+            }
+
+            let prev = prev.unwrap();
+            let next = next.unwrap();
+
+            if prev.trace_id == mid.trace_id && next.trace_id == mid.trace_id {
+                common_points.push(mid);
+                continue;
+            }
+
+            let prev_point = Point::from(*prev);
+            let next_point = Point::from(*next);
+
+            let prev_next_dist = prev_point.haversine_distance(&next_point);
+
+            if prev.trace_id != mid.trace_id
+                && prev.trace_id == next.trace_id
+                && prev_next_dist < 250.0
+            {
+                common_points.push(next);
                 idx += 1;
                 continue;
             }
 
-            if curr.id == ty.id {
-                common_points.push(curr);
-                break;
-            }
-
-            let prev = common_points.last();
-            let next = all_points.get(idx + 1);
-            let next_2 = all_points.get(idx + 2);
-
-            if let (Some(next), Some(next_2)) = (next, next_2) {
-                let point = Point::from(curr);
-                let next_point = Point::from(*next_2);
-
-                if next.trace_id != curr.trace_id
-                    && next_2.trace_id == curr.trace_id
-                    && point.haversine_distance(&next_point) < 250.0
-                {
-                    if let Some(prev) = prev {
-                        let prev_point = Point::from(*prev);
-                        let bearing_prev = point.haversine_bearing(prev_point);
-                        let bearing_next = point.haversine_bearing(next_point);
-                        let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
-                        let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
-
-                        if angle > MAX_BEARING {
-                            common_points.push(curr);
-                        }
-                    }
-                    idx += 2;
-                    continue;
-                }
-            }
-
-            if let (Some(prev), Some(next)) = (prev, next) {
-                if prev.trace_id == curr.trace_id && next.trace_id == curr.trace_id {
-                    common_points.push(curr);
-                    idx += 1;
-                    continue;
-                }
-
-                let point = Point::from(curr);
-                let prev_point = Point::from(*prev);
-                let next_point = Point::from(*next);
-                let bearing_prev = point.haversine_bearing(prev_point);
-                let bearing_next = point.haversine_bearing(next_point);
-                let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
-                let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
-
-                if angle < MAX_BEARING {
-                    idx += 1;
-                    continue;
-                }
-            }
-
-            idx += 1;
-            common_points.push(curr);
-        }
-
-        dbg!(common_points.len());
-
-        common_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
-        let mut filtered_points: Vec<&PointWithId> = Vec::new();
-        let window_size = 3;
-
-        for window in common_points.windows(window_size) {
-            if window[0].id == t1.id {
-                filtered_points.push(window[0]);
-                continue;
-            }
-
-            if window[2].id == ty.id {
-                filtered_points.push(window[2]);
-                break;
-            }
-
-            let start_point = Point::from(window[0]);
-            let current_point = Point::from(window[1]);
-            let end_point = Point::from(window[2]);
-            let bearing_prev = current_point.haversine_bearing(start_point);
-            let bearing_next = current_point.haversine_bearing(end_point);
+            let mid_point = Point::from(mid);
+            let bearing_prev = mid_point.haversine_bearing(prev_point);
+            let bearing_next = mid_point.haversine_bearing(next_point);
             let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
             let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
 
-            if angle >= (MAX_BEARING * 2.0) {
-                filtered_points.push(window[1]);
+            if angle >= MAX_BEARING {
+                common_points.push(mid);
+                continue;
             }
         }
 
-        filtered_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
-        common_points = filtered_points;
+        common_points.sort_by_key(|p| p.timestamp);
+        let mut filtered_points: Vec<&PointWithId> = Vec::with_capacity(common_points.len());
 
-        dbg!(common_points.len());
+        let window_size = 5;
+        let max = window_size - 1;
 
-        filtered_points = Vec::new();
-
-        if common_points.len() < 3 {
-            filtered_points.push(common_points[0]);
-            filtered_points.push(common_points[common_points.len() - 1]);
+        if common_points.len() <= window_size {
+            filtered_points = common_points.clone();
         }
 
         for window in common_points.windows(window_size) {
-            if window[0].id == t1.id {
+            if window[0].id == t0.id {
                 filtered_points.push(window[0]);
                 continue;
             }
 
-            if window[2].id == ty.id {
-                filtered_points.push(window[2]);
-                break;
+            if window[max].id == ty.id {
+                filtered_points.push(window[max]);
             }
 
-            let prev = common_points.last();
-            if let Some(prev) = prev {
-                let start_point = Point::from(*prev);
-                let current_point = Point::from(window[1]);
-                let end_point = Point::from(window[2]);
+            if filtered_points.iter().any(|p| p.id == window[0].id) {
+                continue;
+            }
 
-                if current_point.haversine_distance(&start_point)
-                    < end_point.haversine_distance(&start_point)
-                {
-                    continue;
+            let start_point = Point::from(window[0]);
+            let end_point = Point::from(window[max]);
+            let size = start_point.haversine_distance(&end_point);
+
+            if size > 100.0 {
+                filtered_points.push(window[0]);
+                continue;
+            }
+
+            let trace_ids_count = window
+                .iter()
+                .map(|p| p.trace_id.clone())
+                .collect::<Vec<String>>()
+                .iter()
+                .fold(HashMap::new(), |mut acc, id| {
+                    *acc.entry(id.clone()).or_insert(0) += 1;
+                    acc
+                });
+
+            if trace_ids_count.values().any(|&v| v >= max - 1) {
+                for &point in window {
+                    if trace_ids_count[&point.trace_id] >= max - 1 {
+                        filtered_points.push(point);
+                    }
                 }
             }
 
-            filtered_points.push(window[1]);
+            filtered_points.push(window[0]);
         }
 
-        filtered_points.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
-        let common_linestring = LineString::from(filtered_points).simplify(&0.00001);
+        filtered_points.sort_by_key(|p| p.timestamp);
+        common_points = filtered_points;
+        filtered_points = Vec::with_capacity(common_points.len());
 
+        let window_size = 2;
+        let max = window_size - 1;
+
+        for window in common_points.windows(window_size) {
+            if filtered_points.iter().any(|p| p.id == window[0].id) {
+                continue;
+            }
+
+            if window[0].id == t0.id {
+                filtered_points.push(window[0]);
+            }
+
+            if window[max].id == ty.id {
+                filtered_points.push(window[max]);
+            }
+
+            let prev = filtered_points.last();
+
+            if prev.is_none() {
+                continue;
+            }
+
+            let prev = prev.unwrap();
+
+            let prev_point = Point::from(*prev);
+            let mid_point = Point::from(window[0]);
+            let next_point = Point::from(window[max]);
+            let bearing_prev = mid_point.haversine_bearing(prev_point);
+            let bearing_next = mid_point.haversine_bearing(next_point);
+            let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
+            let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
+
+            if angle == 0.0 || angle >= MAX_BEARING {
+                filtered_points.push(window[0]);
+            }
+        }
+
+        filtered_points.sort_by_key(|p| p.timestamp);
+        let common_linestring = LineString::from(filtered_points).simplify(&0.00001);
         let common_distance = common_linestring.haversine_length();
 
         // visualize([
@@ -255,7 +268,7 @@ impl Trace {
 
         Ok(CommonTrace {
             common_distance,
-            common_start_point: PointOutput::from(*t1),
+            common_start_point: PointOutput::from(*t0),
             common_end_point: PointOutput::from(*ty),
         })
     }
@@ -341,17 +354,17 @@ mod tests {
                 },
                 PointWithId {
                     id: "2".to_string(),
-                    x: 2.295,
-                    y: 48.8738,
-                    trace_id: "trace_1".to_string(),
-                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 10, 0).unwrap(),
-                },
-                PointWithId {
-                    id: "3".to_string(),
                     x: 2.3333,
                     y: 48.8606,
                     trace_id: "trace_1".to_string(),
-                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 0).unwrap(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 2).unwrap(),
+                },
+                PointWithId {
+                    id: "3".to_string(),
+                    x: 2.295,
+                    y: 48.8738,
+                    trace_id: "trace_1".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 4).unwrap(),
                 },
             ],
             vec![
@@ -364,17 +377,17 @@ mod tests {
                 },
                 PointWithId {
                     id: "5".to_string(),
-                    x: 2.296,
-                    y: 48.875,
-                    trace_id: "trace_2".to_string(),
-                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 10, 0).unwrap(),
-                },
-                PointWithId {
-                    id: "6".to_string(),
                     x: 2.3333,
                     y: 48.8606,
                     trace_id: "trace_2".to_string(),
-                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 0).unwrap(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 2).unwrap(),
+                },
+                PointWithId {
+                    id: "6".to_string(),
+                    x: 2.296,
+                    y: 48.875,
+                    trace_id: "trace_2".to_string(),
+                    timestamp: Utc.with_ymd_and_hms(2024, 6, 18, 12, 20, 4).unwrap(),
                 },
             ],
         )
@@ -404,7 +417,7 @@ mod tests {
         };
 
         let length = trace.haversine_length();
-        assert_eq!(length, 7763.121089616901);
+        assert_eq!(length, 4615.121822251224);
     }
 
     #[test]
@@ -443,7 +456,7 @@ mod tests {
 
         let common_trace = trace1.common_trace_with(&trace2).unwrap();
 
-        assert_eq!(common_trace.common_distance, 1452.4532083743177);
+        assert_eq!(common_trace.common_distance, 4615.121822251224);
         assert_eq!(common_trace.common_start_point.id, "1");
         assert_eq!(common_trace.common_end_point.id, "3");
     }
