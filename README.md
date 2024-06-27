@@ -1,2 +1,2 @@
-# gps-trajectory-validation
-Validate gps trajectories
+# fc_journey_validation
+Validate journeys

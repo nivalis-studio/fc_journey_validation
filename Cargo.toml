@@ -1,15 +1,15 @@
 [package]
-name = "gps-trajectory-validation"
+name = "fc_journey_validation"
 description = "Validate GPS trajectories using a set of rules"
 version = "0.0.4"
 readme = "README.md"
 license = "MIT"
 edition = "2021"
-homepage = "https://github.com/nivalis-studio/gps-trajectory-validation"
-repository = "https://github.com/nivalis-studio/gps-trajectory-validation"
+homepage = "https://github.com/ecov/fc_journey_validation"
+repository = "https://github.com/ecov/fc_journey_validation"
 keywords = ["geospatial"]
 categories = ["science::geo"]
-authors = ["pnodet <paul.nodet@gmail.com>", "pnwa <pnwa@icloud.com>"]
+authors = ["pnodet <paul@nivalis.studio>", "pnwa <nicolas@nivalis.studio>"]
 build = "build.rs"
 
 [dependencies]

@@ -1,5 +1,5 @@
 use clap::Parser;
-use gps_trajectory_validation::{cli::Cli, input::JourneyInput, journey::Journey, output::Output};
+use fc_journey_validation::{cli::Cli, input::JourneyInput, journey::Journey, output::Output};
 use std::io::{self, Write};
 
 fn main() {
