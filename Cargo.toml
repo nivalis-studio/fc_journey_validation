@@ -1,7 +1,7 @@
 [package]
 name = "fc_journey_validation"
 description = "Validate GPS trajectories using a set of rules"
-version = "0.0.4"
+version = "1.0.0"
 readme = "README.md"
 license = "MIT"
 edition = "2021"
