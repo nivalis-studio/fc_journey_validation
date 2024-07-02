@@ -161,93 +161,93 @@ impl Trace {
         let window_size = 5;
         let max = window_size - 1;
 
-        if common_points.len() <= window_size {
-            filtered_points.clone_from(&common_points);
-        }
+        if common_points.len() > window_size {
+            for window in common_points.windows(window_size) {
+                if window[0].id == t0.id {
+                    filtered_points.push(window[0]);
+                    continue;
+                }
 
-        for window in common_points.windows(window_size) {
-            if window[0].id == t0.id {
-                filtered_points.push(window[0]);
-                continue;
-            }
+                if window[max].id == ty.id {
+                    filtered_points.push(window[max]);
+                }
 
-            if window[max].id == ty.id {
-                filtered_points.push(window[max]);
-            }
+                if filtered_points.iter().any(|p| p.id == window[0].id) {
+                    continue;
+                }
 
-            if filtered_points.iter().any(|p| p.id == window[0].id) {
-                continue;
-            }
+                let start_point = Point::from(window[0]);
+                let end_point = Point::from(window[max]);
+                let size = start_point.haversine_distance(&end_point);
 
-            let start_point = Point::from(window[0]);
-            let end_point = Point::from(window[max]);
-            let size = start_point.haversine_distance(&end_point);
+                if size > 100.0 {
+                    filtered_points.push(window[0]);
+                    continue;
+                }
 
-            if size > 100.0 {
-                filtered_points.push(window[0]);
-                continue;
-            }
+                let trace_ids_count = window
+                    .iter()
+                    .map(|p| p.trace_id.clone())
+                    .collect::<Vec<String>>()
+                    .iter()
+                    .fold(HashMap::new(), |mut acc, id| {
+                        *acc.entry(id.clone()).or_insert(0) += 1;
+                        acc
+                    });
 
-            let trace_ids_count = window
-                .iter()
-                .map(|p| p.trace_id.clone())
-                .collect::<Vec<String>>()
-                .iter()
-                .fold(HashMap::new(), |mut acc, id| {
-                    *acc.entry(id.clone()).or_insert(0) += 1;
-                    acc
-                });
-
-            if trace_ids_count.values().any(|&v| v >= max - 1) {
-                for &point in window {
-                    if trace_ids_count[&point.trace_id] >= max - 1 {
-                        filtered_points.push(point);
+                if trace_ids_count.values().any(|&v| v >= max - 1) {
+                    for &point in window {
+                        if trace_ids_count[&point.trace_id] >= max - 1 {
+                            filtered_points.push(point);
+                        }
                     }
                 }
-            }
 
-            filtered_points.push(window[0]);
-        }
-
-        filtered_points.sort_by_key(|p| p.timestamp);
-        common_points = filtered_points;
-        filtered_points = Vec::with_capacity(common_points.len());
-
-        let window_size = 2;
-        let max = window_size - 1;
-
-        for window in common_points.windows(window_size) {
-            if filtered_points.iter().any(|p| p.id == window[0].id) {
-                continue;
-            }
-
-            if window[0].id == t0.id {
                 filtered_points.push(window[0]);
             }
 
-            if window[max].id == ty.id {
-                filtered_points.push(window[max]);
+            filtered_points.sort_by_key(|p| p.timestamp);
+            common_points = filtered_points;
+            filtered_points = Vec::with_capacity(common_points.len());
+
+            let window_size = 2;
+            let max = window_size - 1;
+
+            for window in common_points.windows(window_size) {
+                if filtered_points.iter().any(|p| p.id == window[0].id) {
+                    continue;
+                }
+
+                if window[0].id == t0.id {
+                    filtered_points.push(window[0]);
+                }
+
+                if window[max].id == ty.id {
+                    filtered_points.push(window[max]);
+                }
+
+                let prev = filtered_points.last();
+
+                if prev.is_none() {
+                    continue;
+                }
+
+                let prev = prev.unwrap();
+
+                let prev_point = Point::from(*prev);
+                let mid_point = Point::from(window[0]);
+                let next_point = Point::from(window[max]);
+                let bearing_prev = mid_point.haversine_bearing(prev_point);
+                let bearing_next = mid_point.haversine_bearing(next_point);
+                let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
+                let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
+
+                if angle == 0.0 || angle >= MAX_BEARING {
+                    filtered_points.push(window[0]);
+                }
             }
-
-            let prev = filtered_points.last();
-
-            if prev.is_none() {
-                continue;
-            }
-
-            let prev = prev.unwrap();
-
-            let prev_point = Point::from(*prev);
-            let mid_point = Point::from(window[0]);
-            let next_point = Point::from(window[max]);
-            let bearing_prev = mid_point.haversine_bearing(prev_point);
-            let bearing_next = mid_point.haversine_bearing(next_point);
-            let delta = (bearing_next - bearing_prev + 360.0) % 360.0;
-            let angle = if delta <= 180.0 { delta } else { 360.0 - delta };
-
-            if angle == 0.0 || angle >= MAX_BEARING {
-                filtered_points.push(window[0]);
-            }
+        } else {
+            filtered_points.clone_from(&common_points);
         }
 
         filtered_points.sort_by_key(|p| p.timestamp);
