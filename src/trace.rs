@@ -285,8 +285,26 @@ impl Trace<NotSimplified> {
 
 impl Trace<Simplified> {
     pub fn confidence_with(&self, other: &Trace<Simplified>) -> f64 {
-        1.0 - ((LineString::from(self).frechet_distance(&other.into()) * 1000.0) / 100.0)
-            .clamp(0.0, 1.0)
+        let (_, end) = self.get_edges();
+        let (_, end_other) = other.get_edges();
+
+        let curr: LineString = self
+            .points
+            .iter()
+            .filter(|p| p.timestamp <= end_other.timestamp)
+            .map(Point::from)
+            .collect::<Vec<Point<f64>>>()
+            .into();
+
+        let other: LineString = other
+            .points
+            .iter()
+            .filter(|p| p.timestamp <= end.timestamp)
+            .map(Point::from)
+            .collect::<Vec<Point<f64>>>()
+            .into();
+
+        1.0 - ((curr.frechet_distance(&other) * 1000.0) / 100.0).clamp(0.0, 1.0)
     }
 }
 
@@ -294,6 +312,7 @@ impl<T> Trace<T> {
     pub fn haversine_length(&self) -> f64 {
         LineString::from(self).haversine_length()
     }
+
     pub fn get_edges(&self) -> (&PointWithId, &PointWithId) {
         let start_point = self.points.first().unwrap();
         let end_point = self.points.last().unwrap();
