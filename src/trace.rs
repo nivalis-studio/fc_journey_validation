@@ -162,7 +162,7 @@ impl Trace {
         let max = window_size - 1;
 
         if common_points.len() <= window_size {
-            filtered_points = common_points.clone();
+            filtered_points.clone_from(&common_points);
         }
 
         for window in common_points.windows(window_size) {
