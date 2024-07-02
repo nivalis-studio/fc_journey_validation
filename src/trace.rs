@@ -63,13 +63,6 @@ impl Trace {
         }
     }
 
-    pub fn get_edges(&self) -> (&PointWithId, &PointWithId) {
-        let start_point = self.points.first().unwrap();
-        let end_point = self.points.last().unwrap();
-
-        (start_point, end_point)
-    }
-
     pub fn common_trace_with(&self, other: &Trace) -> Result<CommonTrace> {
         let mut all_points: Vec<&PointWithId> =
             self.points.iter().chain(other.points.iter()).collect();
@@ -300,6 +293,12 @@ impl Trace<Simplified> {
 impl<T> Trace<T> {
     pub fn haversine_length(&self) -> f64 {
         LineString::from(self).haversine_length()
+    }
+    pub fn get_edges(&self) -> (&PointWithId, &PointWithId) {
+        let start_point = self.points.first().unwrap();
+        let end_point = self.points.last().unwrap();
+
+        (start_point, end_point)
     }
 }
 
