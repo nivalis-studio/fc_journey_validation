@@ -9,7 +9,7 @@ use crate::{
 const MAX_DELTA_IN_MILLISECONDS: i64 = 90_000;
 const SIMPLIFY_EPSILON: f64 = 0.00001;
 const MAX_DISTANCE: f64 = 80_000.0;
-const MIN_DISTANCE: f64 = 1_000.0;
+const MIN_DISTANCE: f64 = 2_000.0;
 
 pub struct Journey {
     pub driver_trace: Trace,
